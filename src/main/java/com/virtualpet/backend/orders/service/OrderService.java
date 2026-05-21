@@ -1,11 +1,21 @@
 package com.virtualpet.backend.orders.service;
 
-import com.virtualpet.backend.orders.domain.*;
-import com.virtualpet.backend.orders.dto.OrderDTO.*;
+import com.virtualpet.backend.orders.domain.OrderEntity;
+import com.virtualpet.backend.orders.domain.OrderItemEntity;
+import com.virtualpet.backend.orders.domain.OrderStatus;
+import com.virtualpet.backend.orders.dto.OrderDTO.CreateOrderRequest;
+import com.virtualpet.backend.orders.dto.OrderDTO.OrderDetailResponse;
+import com.virtualpet.backend.orders.dto.OrderDTO.OrderItemDetail;
+import com.virtualpet.backend.orders.dto.OrderDTO.OrderItemRequest;
+import com.virtualpet.backend.orders.dto.OrderDTO.OrderResponse;
+import com.virtualpet.backend.orders.dto.OrderDTO.OrderSummaryResponse;
 import com.virtualpet.backend.orders.repository.OrderRepository;
+import com.virtualpet.backend.shared.exception.ApiException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,49 +23,100 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderService {
 
-  private final OrderRepository orderRepository;
+    private final OrderRepository orderRepository;
 
-  @Transactional
-  public OrderResponse createOrder(UUID currentUserId, CreateOrderRequest request) {
+    @Transactional
+    public OrderResponse createOrder(UUID currentUserId, CreateOrderRequest request) {
 
-    // Instanciamos la orden base
-    OrderEntity order =
-        OrderEntity.builder()
-            .userId(currentUserId)
-            .contactName(request.contactName())
-            .contactLastname(request.contactLastname())
-            .contactEmail(request.contactEmail())
-            .contactPhone(request.contactPhone())
-            .shippingAddress(request.shippingAddress())
-            .status(OrderStatus.PENDING_PAYMENT)
-            .shippingAttempts((short) 0)
-            .build();
+        // Instanciamos la orden base
+        OrderEntity order =
+                OrderEntity.builder()
+                        .userId(currentUserId)
+                        .contactName(request.contactName())
+                        .contactLastname(request.contactLastname())
+                        .contactEmail(request.contactEmail())
+                        .contactPhone(request.contactPhone())
+                        .shippingAddress(request.shippingAddress())
+                        .status(OrderStatus.PENDING_PAYMENT)
+                        .shippingAttempts((short) 0)
+                        .build();
 
-    // Procesamos los items y calculamos el total internamente
-    BigDecimal grandTotal = BigDecimal.ZERO;
+        // Procesamos los items y calculamos el total internamente
+        BigDecimal grandTotal = BigDecimal.ZERO;
 
-    for (OrderItemRequest itemReq : request.items()) {
-      BigDecimal subtotal = itemReq.unitPrice().multiply(BigDecimal.valueOf(itemReq.quantity()));
-      grandTotal = grandTotal.add(subtotal);
+        for (OrderItemRequest itemReq : request.items()) {
+            BigDecimal subtotal =
+                    itemReq.unitPrice().multiply(BigDecimal.valueOf(itemReq.quantity()));
+            grandTotal = grandTotal.add(subtotal);
 
-      OrderItemEntity item =
-          OrderItemEntity.builder()
-              .productVariantId(itemReq.productVariantId())
-              .skuSnapshot(itemReq.sku())
-              .nameSnapshot(itemReq.name())
-              .unitPrice(itemReq.unitPrice())
-              .quantity(itemReq.quantity())
-              .subtotal(subtotal)
-              .build();
+            OrderItemEntity item =
+                    OrderItemEntity.builder()
+                            .productVariantId(itemReq.productVariantId())
+                            .skuSnapshot(itemReq.sku())
+                            .nameSnapshot(itemReq.name())
+                            .unitPrice(itemReq.unitPrice())
+                            .quantity(itemReq.quantity())
+                            .subtotal(subtotal)
+                            .build();
 
-      order.addItem(item); // Esto asocia el item a la orden automáticamente
+            order.addItem(item); // Esto asocia el item a la orden automáticamente
+        }
+
+        order.setTotal(grandTotal);
+
+        OrderEntity savedOrder = orderRepository.save(order);
+
+        return new OrderResponse(
+                savedOrder.getId(), savedOrder.getStatus().name(), savedOrder.getTotal());
     }
 
-    order.setTotal(grandTotal);
+    @Transactional(readOnly = true)
+    public List<OrderSummaryResponse> listByUser(UUID userId) {
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(
+                        o ->
+                                new OrderSummaryResponse(
+                                        o.getId().toString(),
+                                        o.getStatus().name(),
+                                        o.getTotal(),
+                                        o.getCreatedAt().toString(),
+                                        o.getContactName() + " " + o.getContactLastname(),
+                                        o.getContactEmail()))
+                .toList();
+    }
 
-    OrderEntity savedOrder = orderRepository.save(order);
+    @Transactional(readOnly = true)
+    public OrderDetailResponse getByIdAndUser(UUID orderId, UUID userId) {
+        OrderEntity order =
+                orderRepository
+                        .findByIdAndUserId(orderId, userId)
+                        .orElseThrow(
+                                () -> new ApiException(HttpStatus.NOT_FOUND, "Pedido no encontrado"));
 
-    return new OrderResponse(
-        savedOrder.getId(), savedOrder.getStatus().name(), savedOrder.getTotal());
-  }
+        List<OrderItemDetail> items =
+                order.getItems().stream()
+                        .map(
+                                i ->
+                                        new OrderItemDetail(
+                                                i.getProductVariantId().toString(),
+                                                i.getSkuSnapshot(),
+                                                i.getNameSnapshot(),
+                                                i.getUnitPrice(),
+                                                i.getQuantity(),
+                                                i.getSubtotal()))
+                        .toList();
+
+        return new OrderDetailResponse(
+                order.getId().toString(),
+                order.getStatus().name(),
+                order.getTotal(),
+                order.getCreatedAt().toString(),
+                order.getShippingAddress(),
+                order.getContactName(),
+                order.getContactLastname(),
+                order.getContactEmail(),
+                order.getContactPhone(),
+                items);
+    }
 }
+
