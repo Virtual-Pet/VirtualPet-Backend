@@ -21,7 +21,9 @@ jobs:
         cache: maven
 
     - name: Check code formatting
-      run: ./mvnw spotless:check
+      run: |
+        chmod +x mvnw
+        ./mvnw spotless:check
 
     - name: Build and run tests
       run: ./mvnw test
