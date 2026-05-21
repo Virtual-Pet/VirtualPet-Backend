@@ -8,8 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
 
-    List<OrderEntity> findByUserIdOrderByCreatedAtDesc(UUID userId);
+  List<OrderEntity> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
-    Optional<OrderEntity> findByIdAndUserId(UUID id, UUID userId);
+  Optional<OrderEntity> findByIdAndUserId(UUID id, UUID userId);
 }
-

@@ -25,26 +25,26 @@ import org.springframework.stereotype.Service;
 @ConditionalOnMissingBean(value = StorageService.class, ignored = NoOpStorageService.class)
 public class NoOpStorageService implements StorageService {
 
-    @Override
-    public String upload(String key, InputStream content, String contentType) {
-        log.warn(
-                "[StorageService] No-op: upload() called for key='{}'. Configure S3 to enable real storage.",
-                key);
-        return "https://placeholder.virtualpet.local/" + key;
-    }
+  @Override
+  public String upload(String key, InputStream content, String contentType) {
+    log.warn(
+        "[StorageService] No-op: upload() called for key='{}'. Configure S3 to enable real storage.",
+        key);
+    return "https://placeholder.virtualpet.local/" + key;
+  }
 
-    @Override
-    public Optional<String> getUrl(String key) {
-        log.warn(
-                "[StorageService] No-op: getUrl() called for key='{}'. Configure S3 to enable real storage.",
-                key);
-        return Optional.empty();
-    }
+  @Override
+  public Optional<String> getUrl(String key) {
+    log.warn(
+        "[StorageService] No-op: getUrl() called for key='{}'. Configure S3 to enable real storage.",
+        key);
+    return Optional.empty();
+  }
 
-    @Override
-    public void delete(String key) {
-        log.warn(
-                "[StorageService] No-op: delete() called for key='{}'. Configure S3 to enable real storage.",
-                key);
-    }
+  @Override
+  public void delete(String key) {
+    log.warn(
+        "[StorageService] No-op: delete() called for key='{}'. Configure S3 to enable real storage.",
+        key);
+  }
 }

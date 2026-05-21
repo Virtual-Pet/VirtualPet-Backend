@@ -28,40 +28,39 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Builder
 public class ShipmentEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-    @Column(name = "order_id", nullable = false, unique = true)
-    private UUID orderId;
+  @Column(name = "order_id", nullable = false, unique = true)
+  private UUID orderId;
 
-    @Column(name = "warehouse_id", nullable = false)
-    private Integer warehouseId;
+  @Column(name = "warehouse_id", nullable = false)
+  private Integer warehouseId;
 
-    @Column(nullable = false, length = 50)
-    @Builder.Default
-    private String courier = "OWN_DELIVERY";
+  @Column(nullable = false, length = 50)
+  @Builder.Default
+  private String courier = "OWN_DELIVERY";
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private ShipmentStatus status = ShipmentStatus.PENDING;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  @Builder.Default
+  private ShipmentStatus status = ShipmentStatus.PENDING;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Short attempts = 0;
+  @Column(nullable = false)
+  @Builder.Default
+  private Short attempts = 0;
 
-    @Column(name = "last_attempt_at")
-    private Instant lastAttemptAt;
+  @Column(name = "last_attempt_at")
+  private Instant lastAttemptAt;
 
-    @Version
-    private Long version;
+  @Version private Long version;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private Instant createdAt;
+  @CreationTimestamp
+  @Column(name = "created_at", updatable = false)
+  private Instant createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private Instant updatedAt;
+  @UpdateTimestamp
+  @Column(name = "updated_at")
+  private Instant updatedAt;
 }

@@ -26,60 +26,45 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CartController {
 
-    private final CartService cartService;
+  private final CartService cartService;
 
-    @GetMapping
-    public ResponseEntity<CartResponse> getCart(
-            @RequestHeader(
-                            value = "X-Cart-Session",
-                            required = false,
-                            defaultValue = "anonymous")
-                    String sessionId) {
-        return ResponseEntity.ok(cartService.getCart(sessionId));
-    }
+  @GetMapping
+  public ResponseEntity<CartResponse> getCart(
+      @RequestHeader(value = "X-Cart-Session", required = false, defaultValue = "anonymous")
+          String sessionId) {
+    return ResponseEntity.ok(cartService.getCart(sessionId));
+  }
 
-    @PostMapping("/items")
-    public ResponseEntity<CartResponse> addItem(
-            @RequestHeader(
-                            value = "X-Cart-Session",
-                            required = false,
-                            defaultValue = "anonymous")
-                    String sessionId,
-            @RequestBody AddItemRequest request) {
-        return ResponseEntity.ok(cartService.addItem(sessionId, request));
-    }
+  @PostMapping("/items")
+  public ResponseEntity<CartResponse> addItem(
+      @RequestHeader(value = "X-Cart-Session", required = false, defaultValue = "anonymous")
+          String sessionId,
+      @RequestBody AddItemRequest request) {
+    return ResponseEntity.ok(cartService.addItem(sessionId, request));
+  }
 
-    @PatchMapping("/items/{variantId}")
-    public ResponseEntity<CartResponse> updateItem(
-            @RequestHeader(
-                            value = "X-Cart-Session",
-                            required = false,
-                            defaultValue = "anonymous")
-                    String sessionId,
-            @PathVariable String variantId,
-            @RequestBody UpdateItemRequest request) {
-        return ResponseEntity.ok(cartService.updateItem(sessionId, variantId, request.quantity()));
-    }
+  @PatchMapping("/items/{variantId}")
+  public ResponseEntity<CartResponse> updateItem(
+      @RequestHeader(value = "X-Cart-Session", required = false, defaultValue = "anonymous")
+          String sessionId,
+      @PathVariable String variantId,
+      @RequestBody UpdateItemRequest request) {
+    return ResponseEntity.ok(cartService.updateItem(sessionId, variantId, request.quantity()));
+  }
 
-    @DeleteMapping("/items/{variantId}")
-    public ResponseEntity<CartResponse> removeItem(
-            @RequestHeader(
-                            value = "X-Cart-Session",
-                            required = false,
-                            defaultValue = "anonymous")
-                    String sessionId,
-            @PathVariable String variantId) {
-        return ResponseEntity.ok(cartService.removeItem(sessionId, variantId));
-    }
+  @DeleteMapping("/items/{variantId}")
+  public ResponseEntity<CartResponse> removeItem(
+      @RequestHeader(value = "X-Cart-Session", required = false, defaultValue = "anonymous")
+          String sessionId,
+      @PathVariable String variantId) {
+    return ResponseEntity.ok(cartService.removeItem(sessionId, variantId));
+  }
 
-    @DeleteMapping
-    public ResponseEntity<Void> clearCart(
-            @RequestHeader(
-                            value = "X-Cart-Session",
-                            required = false,
-                            defaultValue = "anonymous")
-                    String sessionId) {
-        cartService.clearCart(sessionId);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping
+  public ResponseEntity<Void> clearCart(
+      @RequestHeader(value = "X-Cart-Session", required = false, defaultValue = "anonymous")
+          String sessionId) {
+    cartService.clearCart(sessionId);
+    return ResponseEntity.noContent().build();
+  }
 }

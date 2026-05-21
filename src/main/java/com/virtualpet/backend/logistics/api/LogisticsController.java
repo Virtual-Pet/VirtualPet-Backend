@@ -24,28 +24,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LogisticsController {
 
-    private final LogisticsService logisticsService;
+  private final LogisticsService logisticsService;
 
-    /** List all orders with a given shipment status (default: PENDING). */
-    @GetMapping("/orders")
-    public ResponseEntity<List<PendingOrderResponse>> listOrders(
-            @RequestParam(required = false, defaultValue = "PENDING") String status) {
-        ShipmentStatus shipmentStatus;
-        try {
-            shipmentStatus = ShipmentStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            shipmentStatus = ShipmentStatus.PENDING;
-        }
-        return ResponseEntity.ok(logisticsService.listByStatus(shipmentStatus));
+  /** List all orders with a given shipment status (default: PENDING). */
+  @GetMapping("/orders")
+  public ResponseEntity<List<PendingOrderResponse>> listOrders(
+      @RequestParam(required = false, defaultValue = "PENDING") String status) {
+    ShipmentStatus shipmentStatus;
+    try {
+      shipmentStatus = ShipmentStatus.valueOf(status.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      shipmentStatus = ShipmentStatus.PENDING;
     }
+    return ResponseEntity.ok(logisticsService.listByStatus(shipmentStatus));
+  }
 
-    /** Advance the shipment status for an order. */
-    @PatchMapping("/orders/{orderId}/status")
-    public ResponseEntity<ShipmentStatusResponse> updateStatus(
-            @AuthenticationPrincipal UserPrincipal currentUser,
-            @PathVariable UUID orderId,
-            @RequestBody UpdateShipmentStatusRequest request) {
-        return ResponseEntity.ok(
-                logisticsService.updateStatus(orderId, request.status(), currentUser.getId()));
-    }
+  /** Advance the shipment status for an order. */
+  @PatchMapping("/orders/{orderId}/status")
+  public ResponseEntity<ShipmentStatusResponse> updateStatus(
+      @AuthenticationPrincipal UserPrincipal currentUser,
+      @PathVariable UUID orderId,
+      @RequestBody UpdateShipmentStatusRequest request) {
+    return ResponseEntity.ok(
+        logisticsService.updateStatus(orderId, request.status(), currentUser.getId()));
+  }
 }

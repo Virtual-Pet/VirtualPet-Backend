@@ -15,24 +15,18 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Cart {
 
-    @Builder.Default
-    private List<CartItem> items = new ArrayList<>();
+  @Builder.Default private List<CartItem> items = new ArrayList<>();
 
-    public BigDecimal subtotal() {
-        return items.stream()
-                .map(CartItem::lineTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
+  public BigDecimal subtotal() {
+    return items.stream().map(CartItem::lineTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
 
-    public int itemCount() {
-        return items.stream().mapToInt(CartItem::getQuantity).sum();
-    }
+  public int itemCount() {
+    return items.stream().mapToInt(CartItem::getQuantity).sum();
+  }
 
-    /** Finds an item by variantId, or null. */
-    public CartItem findItem(String variantId) {
-        return items.stream()
-                .filter(i -> i.getVariantId().equals(variantId))
-                .findFirst()
-                .orElse(null);
-    }
+  /** Finds an item by variantId, or null. */
+  public CartItem findItem(String variantId) {
+    return items.stream().filter(i -> i.getVariantId().equals(variantId)).findFirst().orElse(null);
+  }
 }

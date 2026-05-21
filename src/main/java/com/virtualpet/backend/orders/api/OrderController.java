@@ -23,26 +23,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService orderService;
+  private final OrderService orderService;
 
-    @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(
-            @AuthenticationPrincipal UserPrincipal currentUser,
-            @RequestBody CreateOrderRequest request) {
-        OrderResponse response = orderService.createOrder(currentUser.getId(), request);
-        return ResponseEntity.ok(response);
-    }
+  @PostMapping
+  public ResponseEntity<OrderResponse> createOrder(
+      @AuthenticationPrincipal UserPrincipal currentUser, @RequestBody CreateOrderRequest request) {
+    OrderResponse response = orderService.createOrder(currentUser.getId(), request);
+    return ResponseEntity.ok(response);
+  }
 
-    @GetMapping
-    public ResponseEntity<List<OrderSummaryResponse>> listOrders(
-            @AuthenticationPrincipal UserPrincipal currentUser) {
-        return ResponseEntity.ok(orderService.listByUser(currentUser.getId()));
-    }
+  @GetMapping
+  public ResponseEntity<List<OrderSummaryResponse>> listOrders(
+      @AuthenticationPrincipal UserPrincipal currentUser) {
+    return ResponseEntity.ok(orderService.listByUser(currentUser.getId()));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<OrderDetailResponse> getOrder(
-            @AuthenticationPrincipal UserPrincipal currentUser,
-            @PathVariable UUID id) {
-        return ResponseEntity.ok(orderService.getByIdAndUser(id, currentUser.getId()));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<OrderDetailResponse> getOrder(
+      @AuthenticationPrincipal UserPrincipal currentUser, @PathVariable UUID id) {
+    return ResponseEntity.ok(orderService.getByIdAndUser(id, currentUser.getId()));
+  }
 }

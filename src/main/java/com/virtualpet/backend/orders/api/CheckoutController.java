@@ -18,18 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CheckoutController {
 
-    private final CheckoutService checkoutService;
+  private final CheckoutService checkoutService;
 
-    @PostMapping
-    public ResponseEntity<CheckoutResponse> checkout(
-            @AuthenticationPrincipal UserPrincipal currentUser,
-            @RequestHeader(
-                            value = "X-Cart-Session",
-                            required = false,
-                            defaultValue = "anonymous")
-                    String cartSession,
-            @RequestBody CheckoutRequest request) {
-        return ResponseEntity.ok(
-                checkoutService.checkout(currentUser.getId(), cartSession, request));
-    }
+  @PostMapping
+  public ResponseEntity<CheckoutResponse> checkout(
+      @AuthenticationPrincipal UserPrincipal currentUser,
+      @RequestHeader(value = "X-Cart-Session", required = false, defaultValue = "anonymous")
+          String cartSession,
+      @RequestBody CheckoutRequest request) {
+    return ResponseEntity.ok(checkoutService.checkout(currentUser.getId(), cartSession, request));
+  }
 }

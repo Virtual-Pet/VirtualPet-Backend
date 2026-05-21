@@ -13,11 +13,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface ShipmentRepository extends JpaRepository<ShipmentEntity, UUID> {
 
-    List<ShipmentEntity> findByStatusOrderByCreatedAtAsc(ShipmentStatus status);
+  List<ShipmentEntity> findByStatusOrderByCreatedAtAsc(ShipmentStatus status);
 
-    Optional<ShipmentEntity> findByOrderId(UUID orderId);
+  Optional<ShipmentEntity> findByOrderId(UUID orderId);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM ShipmentEntity s WHERE s.orderId = :orderId")
-    Optional<ShipmentEntity> findByOrderIdForUpdate(@Param("orderId") UUID orderId);
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT s FROM ShipmentEntity s WHERE s.orderId = :orderId")
+  Optional<ShipmentEntity> findByOrderIdForUpdate(@Param("orderId") UUID orderId);
 }

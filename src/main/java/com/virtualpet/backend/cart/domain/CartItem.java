@@ -14,16 +14,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CartItem {
 
-    private String variantId;
-    private String productName;
-    private String sku;
-    private Map<String, String> attributes;
-    private int quantity;
-    private BigDecimal unitPrice;
-    private String imageUrl;
+  private String variantId;
+  private String productName;
+  private String sku;
+  private Map<String, String> attributes;
+  private int quantity;
+  private BigDecimal unitPrice;
+  private String imageUrl;
 
-    /** Derived: unitPrice * quantity */
-    public BigDecimal lineTotal() {
-        return unitPrice.multiply(BigDecimal.valueOf(quantity));
-    }
+  /** Derived: unitPrice * quantity */
+  public BigDecimal lineTotal() {
+    return unitPrice.multiply(BigDecimal.valueOf(quantity));
+  }
 }
