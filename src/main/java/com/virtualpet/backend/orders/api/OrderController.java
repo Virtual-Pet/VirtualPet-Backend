@@ -1,9 +1,9 @@
 package com.virtualpet.backend.orders.api;
 
-import com.virtualpet.backend.shared.security.UserPrincipal;
 import com.virtualpet.backend.orders.dto.OrderDTO.CreateOrderRequest;
 import com.virtualpet.backend.orders.dto.OrderDTO.OrderResponse;
 import com.virtualpet.backend.orders.service.OrderService;
+import com.virtualpet.backend.shared.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,14 +14,13 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService orderService;
+  private final OrderService orderService;
 
-    @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(
-            @AuthenticationPrincipal UserPrincipal currentUser,
-            @RequestBody CreateOrderRequest request) {
+  @PostMapping
+  public ResponseEntity<OrderResponse> createOrder(
+      @AuthenticationPrincipal UserPrincipal currentUser, @RequestBody CreateOrderRequest request) {
 
-        OrderResponse response = orderService.createOrder(currentUser.getId(), request);
-        return ResponseEntity.ok(response);
-    }
+    OrderResponse response = orderService.createOrder(currentUser.getId(), request);
+    return ResponseEntity.ok(response);
+  }
 }
