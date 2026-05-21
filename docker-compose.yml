@@ -1,0 +1,50 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - JWT_SECRET=super_secret_jwt_key_that_must_be_long_enough_for_hmac_sha_256_virtualpet_app
+      - DB_URL=jdbc:postgresql://db:5432/virtualpetdb
+      - DB_USER=virtualpet
+      - DB_PASSWORD=virtualpet
+      - DB_DRIVER=org.postgresql.Driver
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - virtualpet_net
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=virtualpetdb
+      - POSTGRES_USER=virtualpet
+      - POSTGRES_PASSWORD=virtualpet
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U virtualpet -d virtualpetdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - virtualpet_net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - virtualpet_net
+
+networks:
+  virtualpet_net:
+    driver: bridge
