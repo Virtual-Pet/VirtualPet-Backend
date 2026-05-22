@@ -30,14 +30,15 @@ CREATE SCHEMA IF NOT EXISTS auth;
 -- 	  extension existe.
 -- =============================================================================
 CREATE TABLE auth.users (
-    id              UUID          	NOT NULL DEFAULT gen_random_uuid(),
-    email           VARCHAR(255)  	NOT NULL,
-    password_hash   VARCHAR(255)  	NOT NULL,               -- bcrypt 
-	role            VARCHAR(30)   	NOT NULL DEFAULT 'ROLE_CUSTOMER',
-    active          BOOLEAN       	NOT NULL DEFAULT TRUE,
-    email_verified	BOOLEAN		  	NOT NULL DEFAULT FALSE,
-    created_at      TIMESTAMPTZ  	NOT NULL DEFAULT NOW(),
-    updated_at  	TIMESTAMPTZ  	NOT NULL DEFAULT NOW(),
+    id                      UUID          	NOT NULL DEFAULT gen_random_uuid(),
+    email                   VARCHAR(255)  	NOT NULL,
+    password_hash           VARCHAR(255)  	NOT NULL,               -- bcrypt
+	role                    VARCHAR(30)   	NOT NULL DEFAULT 'ROLE_CUSTOMER',
+    active                  BOOLEAN       	NOT NULL DEFAULT TRUE,
+    email_verified	        BOOLEAN		  	NOT NULL DEFAULT FALSE,
+    force_password_change   BOOLEAN         NOT NULL DEFAULT FALSE,
+    created_at              TIMESTAMPTZ  	NOT NULL DEFAULT NOW(),
+    updated_at  	        TIMESTAMPTZ  	NOT NULL DEFAULT NOW(),
     
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT uq_user_email UNIQUE (email),
@@ -89,14 +90,14 @@ CREATE TABLE auth.customers (
 -- =============================================================================
 -- TABLE: employees
 --		Guada los datos de los empleados del BackOffice.
---		Relación 1:1 con users. deposit_id es ref lógica a schema logistica.
+--		Relación 1:1 con users. warehouse_id es ref lógica a schema logística.
 -- =============================================================================
 CREATE TABLE auth.employees (
 	user_id			UUID			NOT NULL, 
 	name			VARCHAR(50)		NOT NULL,
 	lastname		VARCHAR(50)		NOT NULL,
 	legajo			VARCHAR(50)		NOT NULL,
-	deposit_id		INT				NOT NULL, 	-- Ref lógica a logistica.deposito(id). Sin FK real cross-schema
+	warehouse_id	INT				NOT NULL, 	-- Ref lógica a logistica.deposito(id). Sin FK real cross-schema
 												-- por diseño (independencia de módulos).
 	created_at 		TIMESTAMPTZ		NOT NULL DEFAULT NOW(),
 	
@@ -109,7 +110,7 @@ CREATE TABLE auth.employees (
 -- =============================================================================
 --	TABLE: addresses
 --		Direcciones del usuario. Permite tener multiples destinos de envio para
---		una misma cuenta. Relacion 1:N con users.
+--		una misma cuenta. Relación 1:N con users.
 -- =============================================================================
 CREATE TABLE auth.addresses (
 	id 				UUID 			NOT NULL DEFAULT gen_random_uuid(),
