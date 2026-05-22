@@ -1,8 +1,8 @@
 package com.virtualpet.backend.auth.domain;
 
+import com.virtualpet.backend.auth.domain.enums.UserRole;
 import jakarta.persistence.*;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -13,11 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 @Entity
 @Table(schema = "auth", name = "users")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserEntity implements UserDetails {
 
   @Id
@@ -42,43 +38,16 @@ public class UserEntity implements UserDetails {
   @Builder.Default
   private Boolean emailVerified = false;
 
+  @Column(name = "force_password_change", nullable = false)
+  @Builder.Default
+  private Boolean forcePasswordChange = false;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   @Builder.Default
   private Instant createdAt = Instant.now();
 
   @Column(name = "updated_at", insertable = false, updatable = false)
   private Instant updatedAt;
-
-  // Relaciones 1:1 con los perfiles. Cascade ALL permite guardar el user y el perfil de una.
-  @OneToOne(
-      mappedBy = "user",
-      cascade = CascadeType.ALL,
-      fetch = FetchType.LAZY,
-      orphanRemoval = true)
-  private CustomerEntity customerProfile;
-
-  @OneToOne(
-      mappedBy = "user",
-      cascade = CascadeType.ALL,
-      fetch = FetchType.LAZY,
-      orphanRemoval = true)
-  private EmployeeEntity employeeProfile;
-
-  // Relación 1:N con direcciones
-  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-  @Builder.Default
-  private List<AddressEntity> addresses = new ArrayList<>();
-
-  // Helper para sincronizar la relación bidireccional
-  public void setCustomerProfile(CustomerEntity customer) {
-    this.customerProfile = customer;
-    customer.setUser(this);
-  }
-
-  public void addAddress(AddressEntity address) {
-    addresses.add(address);
-    address.setUser(this);
-  }
 
   // --- Métodos de UserDetails ---
   @Override
@@ -87,22 +56,14 @@ public class UserEntity implements UserDetails {
   }
 
   @Override
-  public String getPassword() {
-    return this.passwordHash;
-  }
+  public String getPassword() { return this.passwordHash; }
 
   @Override
-  public String getUsername() {
-    return this.email;
-  }
+  public String getUsername() { return this.email; }
 
   @Override
-  public boolean isAccountNonLocked() {
-    return this.active;
-  }
+  public boolean isAccountNonLocked() { return this.active; }
 
   @Override
-  public boolean isEnabled() {
-    return this.active;
-  }
+  public boolean isEnabled() { return this.active; }
 }

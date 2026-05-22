@@ -18,15 +18,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
   @Override
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    return userRepository
-        .findByEmailIgnoreCase(username)
+    return userRepository.findByEmailIgnoreCase(username)
         .map(
-            u ->
-                new UserPrincipal(u.getId(), u.getEmail(), u.getPasswordHash(), u.getRole().name()))
+            u -> new UserPrincipal(u.getId(), u.getEmail(), u.getPasswordHash(), u.getRole().name()))
         .orElseThrow(
             () -> {
               log.warn("Authentication failed — user not found: {}", username);
               return new UsernameNotFoundException("Usuario no encontrado: " + username);
-            });
+            }
+        );
   }
 }
