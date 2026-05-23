@@ -31,7 +31,8 @@ public class RefreshTokenService {
 
     String plainToken = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
 
-    RefreshTokenEntity refreshToken = RefreshTokenEntity.builder()
+    RefreshTokenEntity refreshToken =
+        RefreshTokenEntity.builder()
             .user(user)
             .tokenHash(hashToken(plainToken))
             .expiresAt(Instant.now().plus(7, ChronoUnit.DAYS))
@@ -46,20 +47,24 @@ public class RefreshTokenService {
 
   @Transactional(readOnly = true)
   public UserEntity verifyExpiration(String plainToken) {
-    RefreshTokenEntity tokenEntity = refreshTokenRepository
+    RefreshTokenEntity tokenEntity =
+        refreshTokenRepository
             .findByTokenHash(hashToken(plainToken))
             .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Refresh token inválido"));
 
     if (tokenEntity.getRevoked() || tokenEntity.getExpiresAt().isBefore(Instant.now())) {
-      log.warn("Refresh token rejected — revoked or expired for user: {}", tokenEntity.getUser().getId());
-      throw new ApiException(HttpStatus.UNAUTHORIZED, "Sesión expirada. Por favor inicie sesión nuevamente.");
+      log.warn(
+          "Refresh token rejected — revoked or expired for user: {}",
+          tokenEntity.getUser().getId());
+      throw new ApiException(
+          HttpStatus.UNAUTHORIZED, "Sesión expirada. Por favor inicie sesión nuevamente.");
     }
 
     log.info("Session refreshed for user: {}", tokenEntity.getUser().getId());
     return tokenEntity.getUser();
   }
 
-  protected void revokeAllUserTokens(UUID userId){
+  protected void revokeAllUserTokens(UUID userId) {
     refreshTokenRepository.revokeAllUserTokens(userId);
   }
 

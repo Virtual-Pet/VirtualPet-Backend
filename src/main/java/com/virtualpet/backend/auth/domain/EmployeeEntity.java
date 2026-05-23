@@ -7,7 +7,11 @@ import lombok.*;
 
 @Entity
 @Table(schema = "auth", name = "employees")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class EmployeeEntity {
 
   @Id

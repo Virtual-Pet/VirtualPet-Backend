@@ -32,34 +32,37 @@ public class AuthController {
   }
 
   @PostMapping("/refresh")
-  public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+  public ResponseEntity<AuthResponse> refreshToken(
+      @Valid @RequestBody RefreshTokenRequest request) {
     var user = refreshTokenService.verifyExpiration(request.refreshToken());
-    var userResponse = new UserResponse(
+    var userResponse =
+        new UserResponse(
             user.getId().toString(),
             user.getEmail(),
             user.getRole().toString(),
             user.getEmailVerified(),
-            user.getForcePasswordChange()
-    );
+            user.getForcePasswordChange());
     String newJwt = jwtService.generate(user.getId(), user.getEmail(), user.getRole().name());
-    return ResponseEntity.ok(new AuthResponse(newJwt, null,userResponse));
+    return ResponseEntity.ok(new AuthResponse(newJwt, null, userResponse));
   }
 
   // --- SEGURIDAD Y CLAVES ---
   @PostMapping("/forgot-password")
-  public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+  public ResponseEntity<MessageResponse> forgotPassword(
+      @Valid @RequestBody ForgotPasswordRequest request) {
     return ResponseEntity.ok(passwordResetService.requestReset(request));
   }
 
   @PostMapping("/reset-password")
-  public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+  public ResponseEntity<MessageResponse> resetPassword(
+      @Valid @RequestBody ResetPasswordRequest request) {
     return ResponseEntity.ok(passwordResetService.resetPassword(request));
   }
 
   @PostMapping("/change-password")
   public ResponseEntity<MessageResponse> changePassword(
-          @Valid @RequestBody ChangePasswordRequest request,
-          @AuthenticationPrincipal UserPrincipal currentUser) {
+      @Valid @RequestBody ChangePasswordRequest request,
+      @AuthenticationPrincipal UserPrincipal currentUser) {
 
     authService.changeInternalPassword(currentUser.getId(), request);
 

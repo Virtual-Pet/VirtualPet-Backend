@@ -17,19 +17,21 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CustomerController {
 
-    private final CustomerOrchestrator orchestrator;
+  private final CustomerOrchestrator orchestrator;
 
-    @PostMapping("/register") // REEMPLAZA AL /auth/register
-    public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterCustomerRequest request) {
-        orchestrator.executeRegister(request);
-        return ResponseEntity.ok(new MessageResponse("Cliente registrado con éxito."));
-    }
+  @PostMapping("/register") // REEMPLAZA AL /auth/register
+  public ResponseEntity<MessageResponse> register(
+      @Valid @RequestBody RegisterCustomerRequest request) {
+    orchestrator.executeRegister(request);
+    return ResponseEntity.ok(new MessageResponse("Cliente registrado con éxito."));
+  }
 
-    @GetMapping("/me")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<CustomerProfileResponse> getMyProfile(
-            @AuthenticationPrincipal UserPrincipal currentUser) { // Spring extrae el UUID del JWT automáticamente
+  @GetMapping("/me")
+  @PreAuthorize("hasRole('CUSTOMER')")
+  public ResponseEntity<CustomerProfileResponse> getMyProfile(
+      @AuthenticationPrincipal
+          UserPrincipal currentUser) { // Spring extrae el UUID del JWT automáticamente
 
-        return ResponseEntity.ok(orchestrator.executeMe(currentUser.getId()));
-    }
+    return ResponseEntity.ok(orchestrator.executeMe(currentUser.getId()));
+  }
 }

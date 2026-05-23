@@ -1,6 +1,5 @@
 package com.virtualpet.backend.auth.api;
 
-
 import com.virtualpet.backend.auth.dto.EmployeeDTO.EmployeeResponse;
 import com.virtualpet.backend.auth.service.registerOrchestrator.EmployeeOrchestrator;
 import com.virtualpet.backend.shared.security.UserPrincipal;
@@ -17,12 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class EmployeeController {
 
-    private final EmployeeOrchestrator orchestrator;
+  private final EmployeeOrchestrator orchestrator;
 
-    @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
-    public ResponseEntity<EmployeeResponse> getMyProfile(@AuthenticationPrincipal UserPrincipal currentUser) {
-        return ResponseEntity.ok(orchestrator.executeMe(currentUser.getId()));
-    }
-
+  @GetMapping("/me")
+  @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
+  public ResponseEntity<EmployeeResponse> getMyProfile(
+      @AuthenticationPrincipal UserPrincipal currentUser) {
+    return ResponseEntity.ok(orchestrator.executeMe(currentUser.getId()));
+  }
 }

@@ -18,8 +18,7 @@ public class PasswordResetMailService {
 
   public void sendResetLink(String toEmail, String resetUrl) {
     if (!isMailConfigured()) {
-      log.warn(
-          "Gmail no configurado. Link de recuperación para {}: {}", toEmail, resetUrl);
+      log.warn("Gmail no configurado. Link de recuperación para {}: {}", toEmail, resetUrl);
       return;
     }
 
