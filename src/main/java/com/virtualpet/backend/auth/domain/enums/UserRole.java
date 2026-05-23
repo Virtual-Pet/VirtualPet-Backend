@@ -1,4 +1,4 @@
-package com.virtualpet.backend.auth.domain;
+package com.virtualpet.backend.auth.domain.enums;
 
 public enum UserRole {
   ROLE_CUSTOMER,

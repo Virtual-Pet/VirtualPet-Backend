@@ -25,20 +25,15 @@ public class RefreshTokenService {
 
   private final RefreshTokenRepository refreshTokenRepository;
 
-  // private final UserRepository userRepository;
-
   @Transactional
   public String createRefreshToken(UserEntity user) {
-    // Revocamos sesiones anteriores (Otra opc: se puede dejar múltiples sesiones activas)
     refreshTokenRepository.revokeAllUserTokens(user.getId());
 
-    // Generamos un token aleatorio en texto plano
     String plainToken = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
 
-    RefreshTokenEntity refreshToken =
-        RefreshTokenEntity.builder()
+    RefreshTokenEntity refreshToken = RefreshTokenEntity.builder()
             .user(user)
-            .tokenHash(hashToken(plainToken)) // Guardamos el hash en DB
+            .tokenHash(hashToken(plainToken))
             .expiresAt(Instant.now().plus(7, ChronoUnit.DAYS))
             .revoked(false)
             .build();
@@ -46,30 +41,24 @@ public class RefreshTokenService {
     refreshTokenRepository.save(refreshToken);
     log.debug("Refresh token created for user: {}", user.getId());
 
-    // Devolvemos el token en texto plano al usuario
     return plainToken;
   }
 
   @Transactional(readOnly = true)
   public UserEntity verifyExpiration(String plainToken) {
-    RefreshTokenEntity tokenEntity =
-        refreshTokenRepository
+    RefreshTokenEntity tokenEntity = refreshTokenRepository
             .findByTokenHash(hashToken(plainToken))
             .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Refresh token inválido"));
 
     if (tokenEntity.getRevoked() || tokenEntity.getExpiresAt().isBefore(Instant.now())) {
-      log.warn(
-          "Refresh token rejected — revoked or expired for user: {}",
-          tokenEntity.getUser().getId());
-      throw new ApiException(
-          HttpStatus.UNAUTHORIZED, "Sesión expirada. Por favor inicie sesión nuevamente.");
+      log.warn("Refresh token rejected — revoked or expired for user: {}", tokenEntity.getUser().getId());
+      throw new ApiException(HttpStatus.UNAUTHORIZED, "Sesión expirada. Por favor inicie sesión nuevamente.");
     }
 
     log.info("Session refreshed for user: {}", tokenEntity.getUser().getId());
     return tokenEntity.getUser();
   }
 
-  // Hashea el token con SHA-256
   private String hashToken(String token) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");

@@ -7,21 +7,12 @@ import lombok.*;
 
 @Entity
 @Table(schema = "auth", name = "customers")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class CustomerEntity {
 
   @Id
   @Column(name = "user_id")
-  private UUID userId;
-
-  @OneToOne(fetch = FetchType.LAZY)
-  @MapsId // Usa el ID de UserEntity como su propia Primary Key
-  @JoinColumn(name = "user_id")
-  private UserEntity user;
+  private UUID userId; // Relacion logica a auth.users
 
   @Column(nullable = false)
   private String name;

@@ -7,21 +7,12 @@ import lombok.*;
 
 @Entity
 @Table(schema = "auth", name = "employees")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class EmployeeEntity {
 
   @Id
   @Column(name = "user_id")
-  private UUID userId;
-
-  @OneToOne(fetch = FetchType.LAZY)
-  @MapsId
-  @JoinColumn(name = "user_id")
-  private UserEntity user;
+  private UUID userId; // Relacion logica a auth.users
 
   @Column(nullable = false)
   private String name;
@@ -32,8 +23,8 @@ public class EmployeeEntity {
   @Column(nullable = false, unique = true)
   private String legajo;
 
-  @Column(name = "deposit_id", nullable = false)
-  private Integer depositId; // Ref lógica a logistica.warehouses.id (sin FK estricta)
+  @Column(name = "warehouse_id", nullable = false)
+  private Integer warehouseId;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   @Builder.Default

@@ -2,9 +2,9 @@ package com.virtualpet.backend.auth.service;
 
 import com.virtualpet.backend.auth.domain.PasswordResetTokenEntity;
 import com.virtualpet.backend.auth.domain.UserEntity;
-import com.virtualpet.backend.auth.dto.AuthDtos.ForgotPasswordRequest;
-import com.virtualpet.backend.auth.dto.AuthDtos.MessageResponse;
-import com.virtualpet.backend.auth.dto.AuthDtos.ResetPasswordRequest;
+import com.virtualpet.backend.auth.dto.AuthDTO.ForgotPasswordRequest;
+import com.virtualpet.backend.auth.dto.AuthDTO.MessageResponse;
+import com.virtualpet.backend.auth.dto.AuthDTO.ResetPasswordRequest;
 import com.virtualpet.backend.auth.repository.PasswordResetTokenRepository;
 import com.virtualpet.backend.auth.repository.UserRepository;
 import com.virtualpet.backend.shared.config.VirtualPetProperties;
@@ -42,19 +42,16 @@ public class PasswordResetService {
 
   @Transactional
   public MessageResponse resetPassword(ResetPasswordRequest request) {
-    PasswordResetTokenEntity tokenEntity =
-        tokenRepository
+    PasswordResetTokenEntity tokenEntity = tokenRepository
             .findByTokenAndUsedAtIsNull(request.token())
             .orElseThrow(
                 () -> {
                   log.warn("Password reset failed — token not found or already used");
-                  return new ApiException(
-                      HttpStatus.BAD_REQUEST, "El enlace no es válido o ya fue usado");
+                  return new ApiException(HttpStatus.BAD_REQUEST, "El enlace no es válido o ya fue usado");
                 });
 
     if (tokenEntity.getExpiresAt().isBefore(Instant.now())) {
-      log.warn(
-          "Password reset failed — token expired for user: {}", tokenEntity.getUser().getEmail());
+      log.warn("Password reset failed — token expired for user: {}", tokenEntity.getUser().getEmail());
       throw new ApiException(HttpStatus.BAD_REQUEST, "El enlace expiró. Solicitá uno nuevo.");
     }
 
