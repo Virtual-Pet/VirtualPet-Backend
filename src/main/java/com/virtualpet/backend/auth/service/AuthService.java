@@ -6,7 +6,6 @@ import com.virtualpet.backend.auth.dto.AuthDTO.*;
 import com.virtualpet.backend.auth.repository.UserRepository;
 import com.virtualpet.backend.shared.exception.ApiException;
 import com.virtualpet.backend.shared.security.JwtService;
-
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -30,12 +29,14 @@ public class AuthService {
   private final RefreshTokenService refreshTokenService;
 
   @Transactional
-  public UserEntity createIdentity(String email, String rawPassword, UserRole role, boolean forcePasswordChange) {
+  public UserEntity createIdentity(
+      String email, String rawPassword, UserRole role, boolean forcePasswordChange) {
     if (userRepository.existsByEmailIgnoreCase(email)) {
       throw new ApiException(HttpStatus.CONFLICT, "El email ya está registrado");
     }
 
-    UserEntity user = UserEntity.builder()
+    UserEntity user =
+        UserEntity.builder()
             .email(email.toLowerCase())
             .passwordHash(passwordEncoder.encode(rawPassword))
             .role(role)
@@ -49,9 +50,11 @@ public class AuthService {
 
   public AuthResponse login(LoginRequest request) {
     authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.email().toLowerCase(), request.password()));
+        new UsernamePasswordAuthenticationToken(request.email().toLowerCase(), request.password()));
 
-    UserEntity user = userRepository.findByEmailIgnoreCase(request.email())
+    UserEntity user =
+        userRepository
+            .findByEmailIgnoreCase(request.email())
             .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas"));
 
     log.info("Login successful: {}", user.getEmail());
@@ -59,20 +62,21 @@ public class AuthService {
     String jwt = jwtService.generate(user.getId(), user.getEmail(), user.getRole().name());
     String refreshToken = refreshTokenService.createRefreshToken(user);
 
-    UserResponse userResponse = new UserResponse(
+    UserResponse userResponse =
+        new UserResponse(
             user.getId().toString(),
             user.getEmail(),
             user.getRole().name(),
             user.getEmailVerified(),
-            user.getForcePasswordChange()
-    );
+            user.getForcePasswordChange());
 
     return new AuthResponse(jwt, refreshToken, userResponse);
   }
 
   public UserEntity getById(UUID id) {
-    return userRepository.findById(id)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+    return userRepository
+        .findById(id)
+        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
   }
 
   public List<UserEntity> getAllByIds(List<UUID> ids) {
@@ -81,11 +85,14 @@ public class AuthService {
 
   @Transactional
   public void changeInternalPassword(UUID userId, ChangePasswordRequest request) {
-    UserEntity user = userRepository.findById(userId)
+    UserEntity user =
+        userRepository
+            .findById(userId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
     //  Validar que la nueva no sea igual a la vieja
     if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
-      throw new ApiException(HttpStatus.BAD_REQUEST, "La nueva contraseña no puede ser igual a la anterior.");
+      throw new ApiException(
+          HttpStatus.BAD_REQUEST, "La nueva contraseña no puede ser igual a la anterior.");
     }
 
     // Comparamos la clave que ingresó con el Hash guardado en la DB

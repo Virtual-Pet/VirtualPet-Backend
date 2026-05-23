@@ -13,7 +13,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 @Entity
 @Table(schema = "auth", name = "users")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UserEntity implements UserDetails {
 
   @Id
@@ -56,14 +60,22 @@ public class UserEntity implements UserDetails {
   }
 
   @Override
-  public String getPassword() { return this.passwordHash; }
+  public String getPassword() {
+    return this.passwordHash;
+  }
 
   @Override
-  public String getUsername() { return this.email; }
+  public String getUsername() {
+    return this.email;
+  }
 
   @Override
-  public boolean isAccountNonLocked() { return this.active; }
+  public boolean isAccountNonLocked() {
+    return this.active;
+  }
 
   @Override
-  public boolean isEnabled() { return this.active; }
+  public boolean isEnabled() {
+    return this.active;
+  }
 }
