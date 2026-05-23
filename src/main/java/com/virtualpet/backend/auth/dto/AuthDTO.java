@@ -14,7 +14,13 @@ public final class AuthDTO{
           @NotBlank String token, @NotBlank @Size(min = 6, max = 100) String password) {}
 
   public record ChangePasswordRequest(
-          @NotBlank @Size(min = 6) String newPassword) {}
+          @NotBlank(message = "Debes ingresar tu contraseña actual")
+          String currentPassword,
+
+          @NotBlank(message = "La nueva contraseña no puede estar vacía")
+          @Size(min = 6, message = "Mínimo 6 caracteres")
+          String newPassword
+  ){}
 
   public record MessageResponse(String message) {}
 

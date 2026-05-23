@@ -7,6 +7,7 @@ import com.virtualpet.backend.auth.repository.UserRepository;
 import com.virtualpet.backend.shared.exception.ApiException;
 import com.virtualpet.backend.shared.security.JwtService;
 
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -74,12 +75,29 @@ public class AuthService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
   }
 
+  public List<UserEntity> getAllByIds(List<UUID> ids) {
+    return userRepository.findAllById(ids);
+  }
+
   @Transactional
-  public void changeInternalPassword(UUID userId, String newPassword) {
+  public void changeInternalPassword(UUID userId, ChangePasswordRequest request) {
     UserEntity user = userRepository.findById(userId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-    user.setPasswordHash(passwordEncoder.encode(newPassword));
-    user.setForcePasswordChange(false);
+    //  Validar que la nueva no sea igual a la vieja
+    if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "La nueva contraseña no puede ser igual a la anterior.");
+    }
+
+    // Comparamos la clave que ingresó con el Hash guardado en la DB
+    if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "La contraseña actual es incorrecta.");
+    }
+
+    // Actualizamos
+    user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+    user.setForcePasswordChange(false); // Por si venía del flujo de primer ingreso
+
     userRepository.save(user);
+    refreshTokenService.revokeAllUserTokens(userId);
   }
 }

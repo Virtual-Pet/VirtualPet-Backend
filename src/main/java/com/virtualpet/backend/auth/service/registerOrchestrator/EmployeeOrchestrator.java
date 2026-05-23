@@ -7,10 +7,13 @@ import com.virtualpet.backend.auth.dto.EmployeeDTO.EmployeeResponse;
 import com.virtualpet.backend.auth.dto.EmployeeDTO.RegisterEmployeeRequest;
 import com.virtualpet.backend.auth.service.AuthService;
 import com.virtualpet.backend.auth.service.EmployeeProfileService;
+import com.virtualpet.backend.shared.exception.ApiException;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -55,5 +58,40 @@ public class EmployeeOrchestrator {
                 user.getActive(),
                 profile.getCreatedAt()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeResponse> executeGetAll() {
+        // 1. Buscamos todos los perfiles físicos de los empleados
+        List<EmployeeEntity> profiles = employeeProfileService.getAllProfiles();
+
+        // 2. Extraemos la lista de UUIDs de esos usuarios
+        List<UUID> userIds = profiles.stream()
+                .map(EmployeeEntity::getUserId)
+                .toList();
+
+        // 3. Traemos todas las identidades correspondientes desde Auth de un solo golpe
+        List<UserEntity> users = authService.getAllByIds(userIds);
+
+        // 4. Cruzamos la información en memoria para armar los DTOs de respuesta
+        return profiles.stream().map(profile -> {
+            UserEntity user = users.stream()
+                    .filter(u -> u.getId().equals(profile.getUserId()))
+                    .findFirst()
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+                            "Error de integridad: No se encontró la identidad para el empleado " + profile.getLegajo()));
+
+            return new EmployeeResponse(
+                    user.getId(),
+                    user.getEmail(),
+                    profile.getName(),
+                    profile.getLastname(),
+                    profile.getLegajo(),
+                    user.getRole().name(),
+                    profile.getWarehouseId(),
+                    user.getActive(),
+                    profile.getCreatedAt()
+            );
+        }).toList();
     }
 }
