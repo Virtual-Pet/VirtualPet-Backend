@@ -1,6 +1,7 @@
 package com.virtualpet.backend.auth.service;
 
 import com.virtualpet.backend.auth.domain.EmployeeEntity;
+import com.virtualpet.backend.auth.dto.EmployeeDTO.EmployeeResponse;
 import com.virtualpet.backend.auth.dto.EmployeeDTO.RegisterEmployeeRequest;
 import com.virtualpet.backend.auth.repository.EmployeeRepository;
 import com.virtualpet.backend.shared.exception.ApiException;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -35,5 +37,10 @@ public class EmployeeProfileService {
         return employeeRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
                         "Perfil de empleado no encontrado para el identificador proporcionado"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeEntity> getAllProfiles() {
+        return employeeRepository.findAll();
     }
 }

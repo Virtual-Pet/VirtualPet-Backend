@@ -25,6 +25,4 @@ public class EmployeeController {
         return ResponseEntity.ok(orchestrator.executeMe(currentUser.getId()));
     }
 
-    //@GetMapping()
-    //Metodo para editar datos de empleado
 }

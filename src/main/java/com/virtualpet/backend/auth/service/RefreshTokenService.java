@@ -59,6 +59,10 @@ public class RefreshTokenService {
     return tokenEntity.getUser();
   }
 
+  protected void revokeAllUserTokens(UUID userId){
+    refreshTokenRepository.revokeAllUserTokens(userId);
+  }
+
   private String hashToken(String token) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");

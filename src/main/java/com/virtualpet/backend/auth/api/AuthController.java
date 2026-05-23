@@ -61,7 +61,8 @@ public class AuthController {
           @Valid @RequestBody ChangePasswordRequest request,
           @AuthenticationPrincipal UserPrincipal currentUser) {
 
-    authService.changeInternalPassword(currentUser.getId(), request.newPassword());
+    authService.changeInternalPassword(currentUser.getId(), request);
+
     return ResponseEntity.ok(new MessageResponse("Contraseña actualizada con éxito."));
   }
 }
