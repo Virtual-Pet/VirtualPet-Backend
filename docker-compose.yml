@@ -4,46 +4,64 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT:-8080}:8080"
+    env_file:
+      - .env
     environment:
-      - SPRING_PROFILES_ACTIVE=default
-      - JWT_SECRET=super_secret_jwt_key_that_must_be_long_enough_for_hmac_sha_256_virtualpet_app
-      - DB_URL=jdbc:postgresql://db:5432/virtualpetdb
-      - DB_USER=virtualpet
-      - DB_PASSWORD=virtualpet
-      - DB_DRIVER=org.postgresql.Driver
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 5
+    restart: unless-stopped
     networks:
       - virtualpet_net
 
   db:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     environment:
-      - POSTGRES_DB=virtualpetdb
-      - POSTGRES_USER=virtualpet
-      - POSTGRES_PASSWORD=virtualpet
+      POSTGRES_DB: ${DB_NAME:-virtualpetdb}
+      POSTGRES_USER: ${DB_USER:-virtualpet}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-virtualpet}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U virtualpet -d virtualpetdb"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-virtualpet} -d ${DB_NAME:-virtualpetdb}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
     networks:
       - virtualpet_net
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
     networks:
       - virtualpet_net
+
+volumes:
+  db_data:
+  redis_data:
 
 networks:
   virtualpet_net:
