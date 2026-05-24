@@ -1,0 +1,38 @@
+# Build output
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+build/
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI / docs
+.github/
+*.md
+docs/
+
+# Local env / logs
+.env
+.env.*
+!.env.example
+*.log
+run.log
+
+# OS junk
+.DS_Store
+Thumbs.db
