@@ -1,21 +1,28 @@
 package com.virtualpet.orders.controller;
 
+import com.virtualpet.common.pagination.CursorPage;
 import com.virtualpet.common.security.UserPrincipal;
-import com.virtualpet.orders.dto.OrderDTO.OrderDetailResponse;
-import com.virtualpet.orders.dto.OrderDTO.OrderSummaryResponse;
+import com.virtualpet.orders.domain.OrderStatus;
+import com.virtualpet.orders.dto.OrderDTO.CancelOrderRequest;
+import com.virtualpet.orders.dto.OrderDTO.OrderCancellation;
+import com.virtualpet.orders.dto.OrderDTO.OrderResponse;
+import com.virtualpet.orders.dto.OrderDTO.OrderSummary;
 import com.virtualpet.orders.service.OrderService;
-import java.util.List;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Read-side endpoints for orders. Order creation is owned by checkout sessions ({@code POST
- * /checkout/sessions/{id}/confirm}); cancellation will arrive in a later PR.
+ * Read + cancel endpoints for orders. Authentication is required; CUSTOMER sees only their own
+ * orders, EMPLOYEE/ADMIN see everything and may filter by {@code user}.
  */
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -25,13 +32,33 @@ public class OrderController {
   private final OrderService orderService;
 
   @GetMapping
-  public List<OrderSummaryResponse> listOrders(@AuthenticationPrincipal UserPrincipal currentUser) {
-    return orderService.listByUser(currentUser.getId());
+  public CursorPage<OrderSummary> list(
+      @AuthenticationPrincipal UserPrincipal currentUser,
+      @RequestParam(required = false) OrderStatus status,
+      @RequestParam(required = false, name = "user") UUID userFilter,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(defaultValue = "20") int limit) {
+    return orderService.list(
+        currentUser.getId(), isCustomer(currentUser), status, userFilter, cursor, limit);
   }
 
   @GetMapping("/{id}")
-  public OrderDetailResponse getOrder(
+  public OrderResponse get(
       @AuthenticationPrincipal UserPrincipal currentUser, @PathVariable UUID id) {
-    return orderService.getByIdAndUser(id, currentUser.getId());
+    return orderService.getById(id, currentUser.getId(), isCustomer(currentUser));
+  }
+
+  @PostMapping("/{id}/cancel")
+  public OrderCancellation cancel(
+      @AuthenticationPrincipal UserPrincipal currentUser,
+      @PathVariable UUID id,
+      @Valid @RequestBody(required = false) CancelOrderRequest request) {
+    String reason = request == null ? null : request.reason();
+    return orderService.cancel(id, currentUser.getId(), isCustomer(currentUser), reason);
+  }
+
+  private static boolean isCustomer(UserPrincipal user) {
+    String role = user.getRole();
+    return role != null && role.endsWith("CUSTOMER");
   }
 }
