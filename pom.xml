@@ -21,7 +21,7 @@
 		<!-- Plugin versions -->
 		<jacoco.version>0.8.12</jacoco.version>
 		<spotless.version>2.43.0</spotless.version>
-		<enforcer.version>3.5.0</enforcer.version>
+		<enforcer.version>3.6.3</enforcer.version>
 
 		<!-- Coverage threshold. Start permissive; raise as the codebase matures. -->
 		<jacoco.line.coverage.min>0.00</jacoco.line.coverage.min>
