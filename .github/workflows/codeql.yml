@@ -28,10 +28,10 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           cache: maven
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: java
       - run: chmod +x mvnw && ./mvnw -B -DskipTests package
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           category: "/language:java"
