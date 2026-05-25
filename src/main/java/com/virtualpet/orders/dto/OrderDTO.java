@@ -1,34 +1,52 @@
 package com.virtualpet.orders.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.virtualpet.orders.domain.Address;
+import com.virtualpet.orders.domain.OrderStatus;
+import com.virtualpet.orders.domain.PaymentStatus;
+import com.virtualpet.shipments.domain.ShipmentStatus;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTOs for /orders read endpoints. Order *creation* now flows through checkout sessions, so the
- * inbound POST shape is gone — see {@link com.virtualpet.orders.dto.CheckoutDTO} for that side.
- */
+/** Wire DTOs for /orders. Map 1:1 to the OpenAPI schemas. */
 public final class OrderDTO {
 
   private OrderDTO() {}
 
-  public record OrderDetailResponse(
+  public record OrderSummary(
       UUID orderId,
-      String status,
+      OrderStatus status,
       BigDecimal total,
-      String createdAt,
+      String currency,
+      Instant createdAt,
+      UUID shipmentId) {}
+
+  public record OrderLineItem(
+      UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {}
+
+  public record OrderTotals(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
+
+  public record OrderShipmentRef(UUID shipmentId, ShipmentStatus status) {}
+
+  public record OrderResponse(
+      UUID orderId,
+      UUID customerId,
+      OrderStatus status,
+      List<OrderLineItem> lineItems,
+      OrderTotals totals,
+      String currency,
       Address shippingAddress,
-      List<OrderItemDetail> items) {}
+      OrderShipmentRef shipment,
+      Instant createdAt) {}
 
-  public record OrderItemDetail(
-      UUID variantId,
-      String sku,
-      String productName,
-      BigDecimal unitPrice,
-      int quantity,
-      BigDecimal subtotal) {}
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record RefundSummary(UUID paymentId, PaymentStatus status) {}
 
-  public record OrderSummaryResponse(
-      UUID orderId, String status, BigDecimal total, String createdAt) {}
+  public record OrderCancellation(
+      UUID orderId, OrderStatus status, OrderShipmentRef shipment, RefundSummary refund) {}
+
+  public record CancelOrderRequest(@Size(max = 200) String reason) {}
 }

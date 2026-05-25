@@ -35,4 +35,9 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariantEn
   @Query(
       "UPDATE ProductVariantEntity v SET v.stock = v.stock - :qty WHERE v.id = :id AND v.stock >= :qty")
   int decrementStock(@Param("id") UUID id, @Param("qty") int qty);
+
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
+  @Transactional
+  @Query("UPDATE ProductVariantEntity v SET v.stock = v.stock + :qty WHERE v.id = :id")
+  int incrementStock(@Param("id") UUID id, @Param("qty") int qty);
 }
