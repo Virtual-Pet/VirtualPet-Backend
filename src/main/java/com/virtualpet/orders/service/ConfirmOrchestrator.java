@@ -18,6 +18,7 @@ import com.virtualpet.orders.repository.PaymentRepository;
 import com.virtualpet.shipments.domain.ShipmentEntity;
 import com.virtualpet.shipments.domain.ShipmentStatus;
 import com.virtualpet.shipments.repository.ShipmentRepository;
+import com.virtualpet.shipments.service.ShipmentService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class ConfirmOrchestrator {
   private final InventoryService inventoryService;
   private final CheckoutSessionService sessionService;
   private final CartService cartService;
+  private final ShipmentService shipmentService;
 
   @Transactional
   public OrderConfirmationResponse confirmPaidSession(
@@ -104,6 +106,8 @@ public class ConfirmOrchestrator {
             .status(ShipmentStatus.CONFIRMED)
             .build();
     ShipmentEntity savedShipment = shipmentRepository.save(shipment);
+    shipmentService.recordInitialStatus(
+        savedShipment.getId(), ShipmentStatus.CONFIRMED, session.getUserId());
 
     payment.setOrderId(savedOrder.getId());
     paymentRepository.save(payment);

@@ -1,19 +1,17 @@
 package com.virtualpet.shipments.repository;
 
 import com.virtualpet.shipments.domain.ShipmentEntity;
-import com.virtualpet.shipments.domain.ShipmentStatus;
 import jakarta.persistence.LockModeType;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ShipmentRepository extends JpaRepository<ShipmentEntity, UUID> {
-
-  List<ShipmentEntity> findByStatusOrderByCreatedAtAsc(ShipmentStatus status);
+public interface ShipmentRepository
+    extends JpaRepository<ShipmentEntity, UUID>, JpaSpecificationExecutor<ShipmentEntity> {
 
   Optional<ShipmentEntity> findByOrderId(UUID orderId);
 
