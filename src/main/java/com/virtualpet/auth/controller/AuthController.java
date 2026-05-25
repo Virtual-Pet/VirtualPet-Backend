@@ -42,7 +42,7 @@ public class AuthController {
 
   @PostMapping("/login")
   public ResponseEntity<AuthTokens> login(@Valid @RequestBody LoginRequest request) {
-    return ResponseEntity.ok(authService.login(request));
+    return ResponseEntity.ok(this.authService.login(request));
   }
 
   @PostMapping("/logout")

@@ -1,60 +1,34 @@
 package com.virtualpet.orders.dto;
 
-import com.virtualpet.orders.domain.ShippingAddress;
+import com.virtualpet.orders.domain.Address;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * DTOs for /orders read endpoints. Order *creation* now flows through checkout sessions, so the
+ * inbound POST shape is gone — see {@link com.virtualpet.orders.dto.CheckoutDTO} for that side.
+ */
 public final class OrderDTO {
 
-  public record CreateOrderRequest(
-      String contactName,
-      String contactLastname,
-      String contactEmail,
-      String contactPhone,
-      ShippingAddress shippingAddress,
-      List<OrderItemRequest> items) {}
-
-  public record OrderItemRequest(
-      UUID productVariantId, String sku, String name, BigDecimal unitPrice, Integer quantity) {}
-
-  public record OrderResponse(UUID orderId, String status, BigDecimal total) {}
-
-  public record CheckoutRequest(
-      String contactName,
-      String contactLastname,
-      String contactEmail,
-      String contactPhone,
-      ShippingAddress shippingAddress) {}
-
-  public record CheckoutResponse(
-      String orderId, String status, java.math.BigDecimal total, String paymentUrl) {}
+  private OrderDTO() {}
 
   public record OrderDetailResponse(
-      String orderId,
+      UUID orderId,
       String status,
-      java.math.BigDecimal total,
+      BigDecimal total,
       String createdAt,
-      ShippingAddress shippingAddress,
-      String contactName,
-      String contactLastname,
-      String contactEmail,
-      String contactPhone,
-      java.util.List<OrderItemDetail> items) {}
+      Address shippingAddress,
+      List<OrderItemDetail> items) {}
 
   public record OrderItemDetail(
-      String variantId,
+      UUID variantId,
       String sku,
       String productName,
-      java.math.BigDecimal unitPrice,
+      BigDecimal unitPrice,
       int quantity,
-      java.math.BigDecimal subtotal) {}
+      BigDecimal subtotal) {}
 
   public record OrderSummaryResponse(
-      String orderId,
-      String status,
-      java.math.BigDecimal total,
-      String createdAt,
-      String contactName,
-      String contactEmail) {}
+      UUID orderId, String status, BigDecimal total, String createdAt) {}
 }

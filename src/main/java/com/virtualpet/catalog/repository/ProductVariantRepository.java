@@ -30,7 +30,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariantEn
             """)
   Optional<ProductVariantEntity> findBySkuWithProduct(@Param("sku") String sku);
 
-  @Modifying(clearAutomatically = true)
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Transactional
   @Query(
       "UPDATE ProductVariantEntity v SET v.stock = v.stock - :qty WHERE v.id = :id AND v.stock >= :qty")

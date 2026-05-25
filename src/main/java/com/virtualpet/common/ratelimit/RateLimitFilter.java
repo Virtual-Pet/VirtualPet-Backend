@@ -35,10 +35,16 @@ public class RateLimitFilter extends OncePerRequestFilter implements Ordered {
 
   private final RateLimiter rateLimiter;
   private final ObjectMapper objectMapper;
+  private final boolean enabled;
 
-  public RateLimitFilter(RateLimiter rateLimiter, ObjectMapper objectMapper) {
+  public RateLimitFilter(
+      RateLimiter rateLimiter,
+      ObjectMapper objectMapper,
+      @org.springframework.beans.factory.annotation.Value("${virtualpet.ratelimit.enabled:true}")
+          boolean enabled) {
     this.rateLimiter = rateLimiter;
     this.objectMapper = objectMapper;
+    this.enabled = enabled;
   }
 
   @Override
@@ -50,6 +56,10 @@ public class RateLimitFilter extends OncePerRequestFilter implements Ordered {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
+    if (!enabled) {
+      chain.doFilter(request, response);
+      return;
+    }
     RateLimitRule rule = matchRule(request);
     if (rule == null) {
       chain.doFilter(request, response);
