@@ -1,33 +1,25 @@
 package com.virtualpet.cart.dto;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
+import java.util.UUID;
 
+/**
+ * DTOs for /cart endpoints. Records map 1:1 to schemas defined in docs/api/virtualpet-openapi.yaml.
+ */
 public final class CartDTO {
 
   private CartDTO() {}
 
-  public record AddItemRequest(
-      String variantId,
-      String productName,
-      String sku,
-      Map<String, String> attributes,
-      int quantity,
-      BigDecimal unitPrice,
-      String imageUrl) {}
+  public record UpdateQuantityRequest(@NotNull @Min(1) Integer quantity) {}
 
-  public record UpdateItemRequest(int quantity) {}
+  public record CartItem(UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {}
 
-  public record CartItemResponse(
-      String variantId,
-      String productName,
-      String sku,
-      Map<String, String> attributes,
-      int quantity,
-      BigDecimal unitPrice,
-      BigDecimal lineTotal,
-      String imageUrl) {}
+  public record Totals(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
 
-  public record CartResponse(List<CartItemResponse> items, BigDecimal subtotal, int itemCount) {}
+  public record Cart(List<CartItem> items, Totals totals, String currency) {}
+
+  public record CartItemQuantity(UUID skuId, int quantity) {}
 }
