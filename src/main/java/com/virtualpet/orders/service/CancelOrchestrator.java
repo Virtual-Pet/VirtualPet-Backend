@@ -15,6 +15,7 @@ import com.virtualpet.orders.repository.PaymentRepository;
 import com.virtualpet.shipments.domain.ShipmentEntity;
 import com.virtualpet.shipments.domain.ShipmentStatus;
 import com.virtualpet.shipments.repository.ShipmentRepository;
+import com.virtualpet.shipments.service.ShipmentService;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,6 +43,7 @@ public class CancelOrchestrator {
   private final ShipmentRepository shipmentRepository;
   private final PaymentRepository paymentRepository;
   private final InventoryService inventoryService;
+  private final ShipmentService shipmentService;
 
   @Transactional
   public OrderCancellation cancel(OrderEntity order, String reason) {
@@ -69,8 +71,11 @@ public class CancelOrchestrator {
     order.setStatus(OrderStatus.CANCELLED);
     orderRepository.save(order);
 
+    ShipmentStatus previousShipmentStatus = shipment.getStatus();
     shipment.setStatus(ShipmentStatus.CANCELLED);
     shipmentRepository.save(shipment);
+    shipmentService.recordCancellation(
+        shipment.getId(), previousShipmentStatus, reason, order.getUserId());
 
     Map<UUID, Integer> restockLines = new HashMap<>();
     for (OrderItemEntity item : order.getItems()) {

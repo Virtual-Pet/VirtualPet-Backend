@@ -45,7 +45,7 @@ public class ShipmentEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   @Builder.Default
-  private ShipmentStatus status = ShipmentStatus.PENDING;
+  private ShipmentStatus status = ShipmentStatus.CONFIRMED;
 
   @Column(nullable = false)
   @Builder.Default
