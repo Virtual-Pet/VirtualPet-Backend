@@ -1,5 +1,6 @@
 package com.virtualpet;
 
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +14,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * Provides stub infrastructure beans so the application context loads when no Redis is reachable.
- * Tests that exercise Redis-backed behavior should mock the template directly.
+ * The StringRedisTemplate uses deep stubs so chained calls (opsForValue().increment(...)) return
+ * mocks instead of NPEs; rate limit and idempotency code paths gracefully treat null returns as "no
+ * prior state".
  */
 @TestConfiguration
 @Profile("mock")
@@ -28,7 +31,7 @@ public class TestRedisConfiguration {
   @Bean
   @Primary
   public StringRedisTemplate stringRedisTemplate() {
-    return mock(StringRedisTemplate.class);
+    return mock(StringRedisTemplate.class, RETURNS_DEEP_STUBS);
   }
 
   @Bean

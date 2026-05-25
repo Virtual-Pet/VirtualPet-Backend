@@ -3,7 +3,6 @@ package com.virtualpet.auth.service;
 import com.virtualpet.auth.domain.PasswordResetTokenEntity;
 import com.virtualpet.auth.domain.UserEntity;
 import com.virtualpet.auth.dto.AuthDTO.ForgotPasswordRequest;
-import com.virtualpet.auth.dto.AuthDTO.MessageResponse;
 import com.virtualpet.auth.dto.AuthDTO.ResetPasswordRequest;
 import com.virtualpet.auth.repository.PasswordResetTokenRepository;
 import com.virtualpet.auth.repository.UserRepository;
@@ -23,25 +22,22 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PasswordResetService {
 
-  private static final String GENERIC_MESSAGE =
-      "Si el email está registrado, recibirás un enlace para restablecer la contraseña.";
-
   private final UserRepository userRepository;
   private final PasswordResetTokenRepository tokenRepository;
   private final PasswordEncoder passwordEncoder;
   private final PasswordResetMailService mailService;
+  private final RefreshTokenService refreshTokenService;
   private final VirtualPetProperties properties;
 
   @Transactional
-  public MessageResponse requestReset(ForgotPasswordRequest request) {
+  public void requestReset(ForgotPasswordRequest request) {
     String email = request.email().toLowerCase();
     log.info("Password reset requested for: {}", email);
     userRepository.findByEmailIgnoreCase(email).ifPresent(this::createAndSendToken);
-    return new MessageResponse(GENERIC_MESSAGE);
   }
 
   @Transactional
-  public MessageResponse resetPassword(ResetPasswordRequest request) {
+  public void resetPassword(ResetPasswordRequest request) {
     PasswordResetTokenEntity tokenEntity =
         tokenRepository
             .findByTokenAndUsedAtIsNull(request.token())
@@ -49,21 +45,21 @@ public class PasswordResetService {
                 () -> {
                   log.warn("Password reset failed — token not found or already used");
                   return new ApiException(
-                      HttpStatus.BAD_REQUEST, "El enlace no es válido o ya fue usado");
+                      HttpStatus.BAD_REQUEST, "Invalid or already used reset token");
                 });
 
     if (tokenEntity.getExpiresAt().isBefore(Instant.now())) {
       log.warn(
           "Password reset failed — token expired for user: {}", tokenEntity.getUser().getEmail());
-      throw new ApiException(HttpStatus.BAD_REQUEST, "El enlace expiró. Solicitá uno nuevo.");
+      throw new ApiException(HttpStatus.BAD_REQUEST, "Reset token expired");
     }
 
     UserEntity user = tokenEntity.getUser();
-    user.setPasswordHash(passwordEncoder.encode(request.password()));
+    user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
     tokenEntity.setUsedAt(Instant.now());
     invalidateActiveTokens(user.getId());
+    refreshTokenService.revokeAllUserTokens(user.getId());
     log.info("Password reset successfully for: {}", user.getEmail());
-    return new MessageResponse("Contraseña actualizada. Ya podés iniciar sesión.");
   }
 
   private void createAndSendToken(UserEntity user) {
