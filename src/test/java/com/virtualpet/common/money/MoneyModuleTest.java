@@ -2,13 +2,14 @@ package com.virtualpet.common.money;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 class MoneyModuleTest {
 
-  private final ObjectMapper mapper = new ObjectMapper().registerModule(new MoneyModule());
+  private final ObjectMapper mapper = JsonMapper.builder().addModule(new MoneyModule()).build();
 
   record Amount(BigDecimal value) {}
 

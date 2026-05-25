@@ -1,8 +1,5 @@
 package com.virtualpet.common.idempotency;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.virtualpet.common.exception.ApiException;
 import java.time.Duration;
 import java.util.function.Supplier;
@@ -11,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Replay-safe execution gated by an Idempotency-Key. Stores the JSON-serialized result in Redis so
@@ -80,7 +80,7 @@ public class IdempotencyKeyService {
   private String writeValue(Object value) {
     try {
       return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalStateException("Failed to serialize idempotent response", e);
     }
   }
@@ -88,7 +88,7 @@ public class IdempotencyKeyService {
   private <T> T readValue(String json, Class<T> type) {
     try {
       return objectMapper.readValue(json, type);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalStateException("Corrupted idempotent response in cache", e);
     }
   }
@@ -96,7 +96,7 @@ public class IdempotencyKeyService {
   private <T> T readValue(String json, TypeReference<T> type) {
     try {
       return objectMapper.readValue(json, type);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalStateException("Corrupted idempotent response in cache", e);
     }
   }

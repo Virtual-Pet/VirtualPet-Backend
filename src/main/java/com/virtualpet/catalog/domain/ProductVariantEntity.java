@@ -3,6 +3,8 @@ package com.virtualpet.catalog.domain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -18,7 +20,9 @@ import lombok.Setter;
 @Setter
 public class ProductVariantEntity {
 
-  @Id private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "product_id", nullable = false)
@@ -27,8 +31,8 @@ public class ProductVariantEntity {
   @Column(nullable = false, unique = true)
   private String sku;
 
-  @Column(columnDefinition = "jsonb", nullable = false)
-  private String attributes;
+  @Column(nullable = false)
+  private String attributes = "{}";
 
   @Column(nullable = false)
   private BigDecimal price = BigDecimal.ZERO;

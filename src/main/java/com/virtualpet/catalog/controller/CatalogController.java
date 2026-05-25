@@ -1,14 +1,17 @@
 package com.virtualpet.catalog.controller;
 
-import com.virtualpet.catalog.dto.CatalogDtos.CatalogFacetsResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.CategoryResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductDetailResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductPageResponse;
+import com.virtualpet.catalog.dto.CatalogDtos.Product;
+import com.virtualpet.catalog.dto.CatalogDtos.ProductSummary;
 import com.virtualpet.catalog.service.CatalogService;
+import com.virtualpet.common.cache.ETagSupport;
+import com.virtualpet.common.pagination.CursorPage;
+import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
-import java.util.List;
+import java.time.Duration;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,43 +19,33 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 public class CatalogController {
 
-  private final CatalogService catalogService;
+  private static final CacheControl CACHE =
+      CacheControl.maxAge(Duration.ofMinutes(5)).cachePublic();
 
-  @GetMapping("/products")
-  public ProductPageResponse list(
+  private final CatalogService catalogService;
+  private final ETagSupport etag;
+
+  @GetMapping
+  public ResponseEntity<CursorPage<ProductSummary>> list(
       @RequestParam(required = false) String q,
       @RequestParam(required = false) String category,
       @RequestParam(required = false) String petType,
-      @RequestParam(required = false) String brand,
       @RequestParam(required = false) BigDecimal minPrice,
       @RequestParam(required = false) BigDecimal maxPrice,
-      @RequestParam(required = false) String sort,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "20") int size) {
-    return catalogService.list(q, category, petType, brand, minPrice, maxPrice, sort, page, size);
+      @RequestParam(required = false) String cursor,
+      @RequestParam(defaultValue = "20") int limit,
+      HttpServletRequest request) {
+    CursorPage<ProductSummary> page =
+        catalogService.list(q, category, petType, minPrice, maxPrice, cursor, limit);
+    return etag.withETag(page, request, CACHE);
   }
 
-  @GetMapping("/products/facets")
-  public CatalogFacetsResponse facets() {
-    return catalogService.getFacets();
-  }
-
-  @GetMapping("/products/by-slug/{slug}")
-  public ProductDetailResponse getBySlug(@PathVariable String slug) {
-    return catalogService.getBySlug(slug);
-  }
-
-  @GetMapping("/products/{id}")
-  public ProductDetailResponse get(@PathVariable UUID id) {
-    return catalogService.getById(id);
-  }
-
-  @GetMapping("/categories")
-  public List<CategoryResponse> categories() {
-    return catalogService.listCategories();
+  @GetMapping("/{id}")
+  public ResponseEntity<Product> get(@PathVariable UUID id, HttpServletRequest request) {
+    return etag.withETag(catalogService.getById(id), request, CACHE);
   }
 }

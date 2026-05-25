@@ -14,6 +14,8 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariantEn
 
   List<ProductVariantEntity> findByProductId(UUID productId);
 
+  List<ProductVariantEntity> findByProductIdIn(java.util.Collection<UUID> productIds);
+
   long countByProductId(UUID productId);
 
   @Query("SELECT v FROM ProductVariantEntity v JOIN FETCH v.product WHERE v.id = :id")

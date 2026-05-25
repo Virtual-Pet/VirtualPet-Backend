@@ -2,17 +2,17 @@ package com.virtualpet.common.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
+import tools.jackson.databind.json.JsonMapper;
 
 class ETagSupportTest {
 
-  private final ETagSupport etagSupport = new ETagSupport(new ObjectMapper());
+  private final ETagSupport etagSupport = new ETagSupport(JsonMapper.builder().build());
 
   record Payload(String name, int qty) {}
 
