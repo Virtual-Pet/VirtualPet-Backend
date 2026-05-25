@@ -4,8 +4,7 @@
 
 Please **do not** open public GitHub issues for security problems.
 
-Email the maintainers at `security@virtualpet.example` (replace with your real
-address) with:
+Email the maintainers at `security@virtualpet.example` with:
 
 - A description of the issue and its impact.
 - Steps to reproduce or a proof of concept.
