@@ -2,9 +2,7 @@ package com.virtualpet.common.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -13,13 +11,10 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class LoggingInterceptor implements HandlerInterceptor {
 
   private static final String START_TIME_ATTR = "requestStartTime";
-  private static final String REQUEST_ID_KEY = "requestId";
 
   @Override
   public boolean preHandle(
       HttpServletRequest request, HttpServletResponse response, Object handler) {
-    String requestId = UUID.randomUUID().toString().substring(0, 8);
-    MDC.put(REQUEST_ID_KEY, requestId);
     request.setAttribute(START_TIME_ATTR, System.currentTimeMillis());
     log.info("→ {} {}", request.getMethod(), request.getRequestURI());
     return true;
@@ -28,13 +23,13 @@ public class LoggingInterceptor implements HandlerInterceptor {
   @Override
   public void afterCompletion(
       HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-    long duration = System.currentTimeMillis() - (Long) request.getAttribute(START_TIME_ATTR);
+    Object start = request.getAttribute(START_TIME_ATTR);
+    long duration = start == null ? 0 : System.currentTimeMillis() - (Long) start;
     int status = response.getStatus();
     if (status >= 500) {
       log.warn("← {} ({}ms)", status, duration);
     } else {
       log.info("← {} ({}ms)", status, duration);
     }
-    MDC.clear();
   }
 }

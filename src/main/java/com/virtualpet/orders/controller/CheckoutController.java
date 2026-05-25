@@ -1,9 +1,9 @@
 package com.virtualpet.orders.controller;
 
+import com.virtualpet.common.security.UserPrincipal;
 import com.virtualpet.orders.dto.OrderDTO.CheckoutRequest;
 import com.virtualpet.orders.dto.OrderDTO.CheckoutResponse;
 import com.virtualpet.orders.service.CheckoutService;
-import com.virtualpet.common.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

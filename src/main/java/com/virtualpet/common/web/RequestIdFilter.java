@@ -1,0 +1,45 @@
+package com.virtualpet.common.web;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.UUID;
+import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Honors the X-Request-Id header for correlation. Generates one if absent, sets it on MDC and the
+ * response header.
+ */
+@Component
+public class RequestIdFilter extends OncePerRequestFilter implements Ordered {
+
+  public static final String HEADER = "X-Request-Id";
+  public static final String MDC_KEY = "requestId";
+
+  @Override
+  public int getOrder() {
+    return Ordered.HIGHEST_PRECEDENCE;
+  }
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+    String requestId = request.getHeader(HEADER);
+    if (requestId == null || requestId.isBlank() || requestId.length() > 128) {
+      requestId = UUID.randomUUID().toString();
+    }
+    MDC.put(MDC_KEY, requestId);
+    response.setHeader(HEADER, requestId);
+    try {
+      chain.doFilter(request, response);
+    } finally {
+      MDC.remove(MDC_KEY);
+    }
+  }
+}

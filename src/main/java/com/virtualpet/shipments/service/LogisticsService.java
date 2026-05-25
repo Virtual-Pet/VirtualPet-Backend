@@ -1,13 +1,12 @@
 package com.virtualpet.shipments.service;
 
-import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.common.exception.ApiException;
+import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.shipments.domain.ShipmentEntity;
 import com.virtualpet.shipments.domain.ShipmentStatus;
 import com.virtualpet.shipments.dto.LogisticsDTO.PendingOrderResponse;
 import com.virtualpet.shipments.dto.LogisticsDTO.ShipmentStatusResponse;
 import com.virtualpet.shipments.repository.ShipmentRepository;
-
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

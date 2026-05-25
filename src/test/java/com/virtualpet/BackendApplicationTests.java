@@ -2,13 +2,10 @@ package com.virtualpet;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
-@SpringBootTest(
-    properties = {
-      "spring.flyway.enabled=false",
-      "spring.jpa.hibernate.ddl-auto=create-drop",
-      "spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true"
-    })
+@SpringBootTest
+@Import(TestRedisConfiguration.class)
 class BackendApplicationTests {
 
   @Test

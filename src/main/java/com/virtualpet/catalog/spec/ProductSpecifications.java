@@ -1,12 +1,11 @@
 package com.virtualpet.catalog.spec;
 
+import com.virtualpet.catalog.domain.ProductEntity;
+import com.virtualpet.catalog.domain.ProductVariantEntity;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import java.math.BigDecimal;
 import org.springframework.data.jpa.domain.Specification;
-
-import com.virtualpet.catalog.domain.ProductEntity;
-import com.virtualpet.catalog.domain.ProductVariantEntity;
 
 public final class ProductSpecifications {
 

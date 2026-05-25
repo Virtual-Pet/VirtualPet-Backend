@@ -6,7 +6,6 @@ import com.virtualpet.shipments.dto.LogisticsDTO.PendingOrderResponse;
 import com.virtualpet.shipments.dto.LogisticsDTO.ShipmentStatusResponse;
 import com.virtualpet.shipments.dto.LogisticsDTO.UpdateShipmentStatusRequest;
 import com.virtualpet.shipments.service.LogisticsService;
-
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
