@@ -50,9 +50,16 @@ class CatalogControllerTest {
 
   @BeforeEach
   void seed() {
-    variantRepository.deleteAll();
-    productRepository.deleteAll();
+    em.createNativeQuery("DELETE FROM logistics.shipment_status").executeUpdate();
+    em.createNativeQuery("DELETE FROM logistics.shipments").executeUpdate();
+    em.createQuery("DELETE FROM PaymentEntity").executeUpdate();
+    em.createQuery("DELETE FROM OrderItemEntity").executeUpdate();
+    em.createQuery("DELETE FROM OrderEntity").executeUpdate();
+    em.createQuery("DELETE FROM CheckoutSessionEntity").executeUpdate();
+    em.createQuery("DELETE FROM ProductVariantEntity").executeUpdate();
+    em.createQuery("DELETE FROM ProductEntity").executeUpdate();
     em.createQuery("DELETE FROM CategoryEntity").executeUpdate();
+    em.flush();
 
     foodCategory = newCategory("Food", "food");
     toyCategory = newCategory("Toys", "toys");
