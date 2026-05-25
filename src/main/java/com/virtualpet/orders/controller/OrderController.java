@@ -1,11 +1,11 @@
 package com.virtualpet.orders.controller;
 
+import com.virtualpet.common.security.UserPrincipal;
 import com.virtualpet.orders.dto.OrderDTO.CreateOrderRequest;
 import com.virtualpet.orders.dto.OrderDTO.OrderDetailResponse;
 import com.virtualpet.orders.dto.OrderDTO.OrderResponse;
 import com.virtualpet.orders.dto.OrderDTO.OrderSummaryResponse;
 import com.virtualpet.orders.service.OrderService;
-import com.virtualpet.common.security.UserPrincipal;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

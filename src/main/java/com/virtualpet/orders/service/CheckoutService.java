@@ -4,15 +4,14 @@ import com.virtualpet.cart.domain.Cart;
 import com.virtualpet.cart.domain.CartItem;
 import com.virtualpet.cart.service.CartService;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
+import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.orders.domain.OrderEntity;
 import com.virtualpet.orders.domain.OrderItemEntity;
 import com.virtualpet.orders.domain.OrderStatus;
 import com.virtualpet.orders.dto.OrderDTO.CheckoutRequest;
 import com.virtualpet.orders.dto.OrderDTO.CheckoutResponse;
 import com.virtualpet.orders.repository.OrderRepository;
-import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.shipments.service.LogisticsService;
-
 import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

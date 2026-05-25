@@ -1,5 +1,10 @@
 package com.virtualpet.catalog.controller;
 
+import com.virtualpet.catalog.dto.CatalogDtos.CatalogFacetsResponse;
+import com.virtualpet.catalog.dto.CatalogDtos.CategoryResponse;
+import com.virtualpet.catalog.dto.CatalogDtos.ProductDetailResponse;
+import com.virtualpet.catalog.dto.CatalogDtos.ProductPageResponse;
+import com.virtualpet.catalog.service.CatalogService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -9,12 +14,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.virtualpet.catalog.dto.CatalogDtos.CatalogFacetsResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.CategoryResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductDetailResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductPageResponse;
-import com.virtualpet.catalog.service.CatalogService;
 
 @RestController
 @RequestMapping("/api/v1")
