@@ -24,7 +24,7 @@ public class CustomerEntity {
   @Column(nullable = false)
   private String lastname;
 
-  @Column(nullable = false, unique = true)
+  @Column(unique = true)
   private String dni;
 
   private String phone;

@@ -1,30 +1,61 @@
 package com.virtualpet.auth.dto;
 
+import com.virtualpet.auth.domain.enums.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 
+/**
+ * DTOs for the /auth/* endpoints. Records map 1:1 to the schemas defined in
+ * docs/api/virtualpet-openapi.yaml.
+ */
 public final class AuthDTO {
 
+  private AuthDTO() {}
+
+  /* ---------- Requests ---------- */
+
   public record LoginRequest(@Email @NotBlank String email, @NotBlank String password) {}
+
+  public record LogoutRequest(@NotBlank String refreshToken) {}
+
+  public record RefreshRequest(@NotBlank String refreshToken) {}
+
+  public record RegisterCustomerRequest(
+      @Email @NotBlank String email,
+      @NotBlank @Size(min = 8, max = 100) String password,
+      @NotBlank String firstName,
+      @NotBlank String lastName) {}
+
+  public record RegisterEmployeeRequest(
+      @Email @NotBlank String email,
+      @NotBlank @Size(min = 8, max = 100) String password,
+      @NotBlank String firstName,
+      @NotBlank String lastName) {}
+
+  public record UpdateMeRequest(String firstName, String lastName) {}
 
   public record ForgotPasswordRequest(@Email @NotBlank String email) {}
 
   public record ResetPasswordRequest(
-      @NotBlank String token, @NotBlank @Size(min = 6, max = 100) String password) {}
+      @NotBlank String token, @NotBlank @Size(min = 8, max = 100) String newPassword) {}
 
   public record ChangePasswordRequest(
-      @NotBlank(message = "Debes ingresar tu contraseña actual") String currentPassword,
-      @NotBlank(message = "La nueva contraseña no puede estar vacía")
-          @Size(min = 6, message = "Mínimo 6 caracteres")
-          String newPassword) {}
+      @NotBlank String currentPassword, @NotBlank @Size(min = 8, max = 100) String newPassword) {}
 
-  public record MessageResponse(String message) {}
+  /* ---------- Responses ---------- */
 
-  public record RefreshTokenRequest(@NotBlank String refreshToken) {}
+  public record AuthTokens(
+      String accessToken,
+      String refreshToken,
+      String tokenType,
+      long expiresIn,
+      UserSummary user) {}
 
-  public record AuthResponse(String token, String refreshToken, UserResponse user) {}
+  public record RefreshResponse(String accessToken, String tokenType, long expiresIn) {}
 
-  public record UserResponse(
-      String id, String email, String role, boolean emailVerified, boolean forcePasswordChange) {}
+  public record UserSummary(UUID id, String email, UserRole role) {}
+
+  public record User(UUID id, String email, String firstName, String lastName, UserRole role) {}
 }

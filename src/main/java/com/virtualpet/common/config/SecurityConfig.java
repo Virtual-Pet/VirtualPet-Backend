@@ -1,6 +1,7 @@
 package com.virtualpet.common.config;
 
 import com.virtualpet.common.security.JwtAuthenticationFilter;
+import com.virtualpet.common.security.ProblemDetailEntryPoints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final ProblemDetailEntryPoints problemEntryPoints;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -29,44 +31,34 @@ public class SecurityConfig {
         .csrf(csrf -> csrf.disable())
         .headers(headers -> headers.frameOptions(frame -> frame.disable()))
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(problemEntryPoints.authenticationEntryPoint())
+                    .accessDeniedHandler(problemEntryPoints.accessDeniedHandler()))
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
-                        "/test",
-                        "/api/v1/ping",
                         "/actuator/**",
                         "/swagger-ui/**",
                         "/api-docs/**",
                         "/v3/api-docs/**",
                         "/h2-console/**")
                     .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/health")
+                    .permitAll()
                     .requestMatchers(
                         HttpMethod.POST,
-                        "/api/v1/customers/register",
                         "/api/v1/auth/login",
-                        "/api/v1/auth/forgot-password",
-                        "/api/v1/auth/reset-password")
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/register/customer",
+                        "/api/v1/auth/password/forgot",
+                        "/api/v1/auth/password/reset")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**")
                     .permitAll()
                     .requestMatchers(
-                        HttpMethod.GET,
-                        "/api/v1/products",
-                        "/api/v1/products/**",
-                        "/api/v1/categories",
-                        "/api/v1/variants/**")
+                        HttpMethod.POST, "/api/v1/payments/webhook/**", "/api/v1/fake-provider/**")
                     .permitAll()
-                    .requestMatchers(
-                        HttpMethod.POST, "/api/v1/webhooks/**", "/api/v1/checkout/mock/**")
-                    .permitAll()
-                    .requestMatchers("/api/v1/cart/**")
-                    .permitAll()
-                    .requestMatchers("/api/v1/backoffice/**")
-                    .hasRole("EMPLOYEE")
-                    .requestMatchers(HttpMethod.POST, "/api/v1/checkout")
-                    .hasRole("CUSTOMER")
-                    .requestMatchers(HttpMethod.GET, "/api/v1/orders", "/api/v1/orders/{id}")
-                    .hasRole("CUSTOMER")
-                    .requestMatchers("/api/v1/orders/**", "/api/v1/auth/me")
-                    .hasAnyRole("CUSTOMER", "EMPLOYEE")
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

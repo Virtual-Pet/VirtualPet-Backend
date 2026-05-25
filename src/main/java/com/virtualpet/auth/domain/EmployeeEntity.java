@@ -24,10 +24,10 @@ public class EmployeeEntity {
   @Column(nullable = false)
   private String lastname;
 
-  @Column(nullable = false, unique = true)
+  @Column(unique = true)
   private String legajo;
 
-  @Column(name = "warehouse_id", nullable = false)
+  @Column(name = "warehouse_id")
   private Integer warehouseId;
 
   @Column(name = "created_at", nullable = false, updatable = false)
