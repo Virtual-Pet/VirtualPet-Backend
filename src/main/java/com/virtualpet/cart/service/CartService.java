@@ -2,11 +2,19 @@ package com.virtualpet.cart.service;
 
 import com.virtualpet.cart.domain.Cart;
 import com.virtualpet.cart.domain.CartItem;
-import com.virtualpet.cart.dto.CartDTO.AddItemRequest;
-import com.virtualpet.cart.dto.CartDTO.CartItemResponse;
-import com.virtualpet.cart.dto.CartDTO.CartResponse;
+import com.virtualpet.cart.dto.CartDTO.CartItemQuantity;
+import com.virtualpet.cart.dto.CartDTO.Totals;
+import com.virtualpet.catalog.domain.ProductVariantEntity;
+import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.common.exception.ApiException;
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,6 +23,12 @@ import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * Per-user cart persisted in Redis. The Redis value stores only {skuId, quantity}; prices are
+ * re-fetched from the catalog on every read so live price changes propagate to the response.
+ *
+ * <p>Creation is lazy: a GET against a missing key returns an empty cart with totals=0.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -22,128 +36,120 @@ public class CartService {
 
   private static final String KEY_PREFIX = "cart:";
   private static final long TTL_HOURS = 24;
+  private static final String CURRENCY = "ARS";
+  private static final BigDecimal SHIPPING = BigDecimal.ZERO;
 
   private final StringRedisTemplate redisTemplate;
   private final ObjectMapper objectMapper;
+  private final ProductVariantRepository variantRepository;
 
-  // -------------------------------------------------------------------------
-  // Public API
-  // -------------------------------------------------------------------------
+  /* ---------- Public API ---------- */
 
-  public CartResponse getCart(String sessionId) {
-    Cart cart = loadCart(sessionId);
-    return toResponse(cart);
+  public com.virtualpet.cart.dto.CartDTO.Cart getCart(UUID userId) {
+    Cart cart = loadCart(userId);
+    return toDto(cart);
   }
 
-  public CartResponse addItem(String sessionId, AddItemRequest req) {
-    Cart cart = loadCart(sessionId);
+  public CartItemQuantity putItem(UUID userId, UUID skuId, int quantity) {
+    if (quantity < 1) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Quantity must be at least 1");
+    }
+    requireVariant(skuId);
 
-    CartItem existing = cart.findItem(req.variantId());
+    Cart cart = loadCart(userId);
+    CartItem existing = cart.findItem(skuId);
     if (existing != null) {
-      existing.setQuantity(existing.getQuantity() + req.quantity());
+      existing.setQuantity(quantity);
     } else {
-      cart.getItems()
-          .add(
-              CartItem.builder()
-                  .variantId(req.variantId())
-                  .productName(req.productName())
-                  .sku(req.sku())
-                  .attributes(req.attributes())
-                  .quantity(req.quantity())
-                  .unitPrice(req.unitPrice())
-                  .imageUrl(req.imageUrl())
-                  .build());
+      cart.getItems().add(CartItem.builder().skuId(skuId).quantity(quantity).build());
     }
-
-    saveCart(sessionId, cart);
-    return toResponse(cart);
+    saveCart(userId, cart);
+    return new CartItemQuantity(skuId, quantity);
   }
 
-  public CartResponse updateItem(String sessionId, String variantId, int newQuantity) {
-    Cart cart = loadCart(sessionId);
-    CartItem item = cart.findItem(variantId);
-
-    if (item == null) {
-      throw new ApiException(HttpStatus.NOT_FOUND, "Item no encontrado en el carrito");
+  public void removeItem(UUID userId, UUID skuId) {
+    Cart cart = loadCart(userId);
+    boolean removed = cart.getItems().removeIf(i -> skuId.equals(i.getSkuId()));
+    if (removed) {
+      saveCart(userId, cart);
     }
-
-    if (newQuantity <= 0) {
-      cart.getItems().remove(item);
-    } else {
-      item.setQuantity(newQuantity);
-    }
-
-    saveCart(sessionId, cart);
-    return toResponse(cart);
   }
 
-  public CartResponse removeItem(String sessionId, String variantId) {
-    Cart cart = loadCart(sessionId);
-    boolean removed = cart.getItems().removeIf(i -> i.getVariantId().equals(variantId));
-
-    if (!removed) {
-      throw new ApiException(HttpStatus.NOT_FOUND, "Item no encontrado en el carrito");
-    }
-
-    saveCart(sessionId, cart);
-    return toResponse(cart);
+  /** Returns the raw Cart domain object (used by checkout). */
+  public Cart getRawCart(UUID userId) {
+    return loadCart(userId);
   }
 
-  public void clearCart(String sessionId) {
-    redisTemplate.delete(key(sessionId));
-    log.debug("Cart cleared: sessionId={}", sessionId);
+  public void clearCart(UUID userId) {
+    redisTemplate.delete(key(userId));
+    log.debug("Cart cleared: userId={}", userId);
   }
 
-  /** Returns the raw Cart domain object (used by CheckoutService). */
-  public Cart getRawCart(String sessionId) {
-    return loadCart(sessionId);
+  /* ---------- Internals ---------- */
+
+  private String key(UUID userId) {
+    return KEY_PREFIX + userId;
   }
 
-  // -------------------------------------------------------------------------
-  // Internal helpers
-  // -------------------------------------------------------------------------
-
-  private String key(String sessionId) {
-    return KEY_PREFIX + sessionId;
-  }
-
-  private Cart loadCart(String sessionId) {
-    String json = redisTemplate.opsForValue().get(key(sessionId));
+  private Cart loadCart(UUID userId) {
+    String json = redisTemplate.opsForValue().get(key(userId));
     if (json == null) {
       return Cart.builder().build();
     }
     try {
       return objectMapper.readValue(json, Cart.class);
     } catch (JacksonException e) {
-      log.warn("Failed to deserialize cart for sessionId={}, returning empty cart", sessionId, e);
+      log.warn("Failed to deserialize cart for userId={}, returning empty", userId, e);
       return Cart.builder().build();
     }
   }
 
-  private void saveCart(String sessionId, Cart cart) {
+  private void saveCart(UUID userId, Cart cart) {
     try {
       String json = objectMapper.writeValueAsString(cart);
-      redisTemplate.opsForValue().set(key(sessionId), json, TTL_HOURS, TimeUnit.HOURS);
+      redisTemplate.opsForValue().set(key(userId), json, TTL_HOURS, TimeUnit.HOURS);
     } catch (JacksonException e) {
-      throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al guardar el carrito");
+      throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist cart");
     }
   }
 
-  private CartResponse toResponse(Cart cart) {
-    var items =
+  private ProductVariantEntity requireVariant(UUID skuId) {
+    return variantRepository
+        .findByIdWithProduct(skuId)
+        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "SKU not found"));
+  }
+
+  private com.virtualpet.cart.dto.CartDTO.Cart toDto(Cart cart) {
+    if (cart.getItems().isEmpty()) {
+      return new com.virtualpet.cart.dto.CartDTO.Cart(
+          List.of(), new Totals(BigDecimal.ZERO, SHIPPING, SHIPPING), CURRENCY);
+    }
+
+    List<UUID> ids = cart.getItems().stream().map(CartItem::getSkuId).toList();
+    Map<UUID, ProductVariantEntity> byId = fetchVariants(ids);
+
+    List<com.virtualpet.cart.dto.CartDTO.CartItem> dtoItems =
         cart.getItems().stream()
             .map(
-                i ->
-                    new CartItemResponse(
-                        i.getVariantId(),
-                        i.getProductName(),
-                        i.getSku(),
-                        i.getAttributes(),
-                        i.getQuantity(),
-                        i.getUnitPrice(),
-                        i.lineTotal(),
-                        i.getImageUrl()))
+                item -> {
+                  ProductVariantEntity variant = byId.get(item.getSkuId());
+                  BigDecimal unitPrice = variant == null ? BigDecimal.ZERO : variant.getPrice();
+                  BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+                  return new com.virtualpet.cart.dto.CartDTO.CartItem(
+                      item.getSkuId(), item.getQuantity(), unitPrice, subtotal);
+                })
             .toList();
-    return new CartResponse(items, cart.subtotal(), cart.itemCount());
+
+    BigDecimal itemsTotal =
+        dtoItems.stream()
+            .map(com.virtualpet.cart.dto.CartDTO.CartItem::subtotal)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    Totals totals = new Totals(itemsTotal, SHIPPING, itemsTotal.add(SHIPPING));
+    return new com.virtualpet.cart.dto.CartDTO.Cart(dtoItems, totals, CURRENCY);
+  }
+
+  private Map<UUID, ProductVariantEntity> fetchVariants(Collection<UUID> ids) {
+    return variantRepository.findAllById(ids).stream()
+        .collect(Collectors.toMap(ProductVariantEntity::getId, Function.identity()));
   }
 }

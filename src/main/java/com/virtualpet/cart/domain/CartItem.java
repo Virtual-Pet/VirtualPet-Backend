@@ -1,29 +1,21 @@
 package com.virtualpet.cart.domain;
 
-import java.math.BigDecimal;
-import java.util.Map;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** Cart item stored as JSON inside Redis. Not a JPA entity. */
+/**
+ * Cart line stored as JSON inside Redis. Only the SKU reference and quantity are persisted; unit
+ * price is re-fetched from the catalog on every read so price changes propagate immediately.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CartItem {
 
-  private String variantId;
-  private String productName;
-  private String sku;
-  private Map<String, String> attributes;
+  private UUID skuId;
   private int quantity;
-  private BigDecimal unitPrice;
-  private String imageUrl;
-
-  /** Derived: unitPrice * quantity */
-  public BigDecimal lineTotal() {
-    return unitPrice.multiply(BigDecimal.valueOf(quantity));
-  }
 }
