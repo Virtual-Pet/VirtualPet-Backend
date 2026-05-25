@@ -2,55 +2,34 @@ package com.virtualpet.catalog.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
+/**
+ * DTOs for /products endpoints. Records map 1:1 to schemas defined in
+ * docs/api/virtualpet-openapi.yaml.
+ */
 public final class CatalogDtos {
 
   private CatalogDtos() {}
 
-  public record ProductSummaryResponse(
-      String id,
-      String slug,
+  public record ProductSummary(
+      UUID id,
+      String name,
+      String category,
+      String petType,
+      BigDecimal basePrice,
+      String thumbnail) {}
+
+  public record Product(
+      UUID id,
       String name,
       String description,
-      BigDecimal basePrice,
       String category,
-      String categorySlug,
       String petType,
-      String brand,
-      String imageUrl,
-      BigDecimal minPrice) {}
+      List<String> images,
+      List<Sku> skus) {}
 
-  public record VariantResponse(
-      String id, String sku, String attributes, BigDecimal price, int stock, String imageUrl) {}
-
-  public record ProductDetailResponse(
-      String id,
-      String slug,
-      String name,
-      String description,
-      BigDecimal basePrice,
-      String category,
-      String categorySlug,
-      String petType,
-      String brand,
-      List<VariantResponse> variants) {}
-
-  public record ProductPageResponse(
-      List<ProductSummaryResponse> items, long total, int page, int size) {}
-
-  public record CategoryResponse(String id, String name, String slug, long productCount) {}
-
-  public record FacetOption(String value, String label, long count) {}
-
-  public record CatalogFacetsResponse(
-      List<FacetOption> petTypes, List<CategoryResponse> categories, List<FacetOption> brands) {}
-
-  public record VariantBySkuResponse(
-      VariantResponse variant,
-      String productId,
-      String productSlug,
-      String productName,
-      String categorySlug,
-      String petType,
-      String brand) {}
+  public record Sku(
+      UUID skuId, Map<String, String> attributes, BigDecimal price, boolean available) {}
 }

@@ -1,7 +1,7 @@
 package com.virtualpet.common.money;
 
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.math.BigDecimal;
+import tools.jackson.databind.module.SimpleModule;
 
 public class MoneyModule extends SimpleModule {
 

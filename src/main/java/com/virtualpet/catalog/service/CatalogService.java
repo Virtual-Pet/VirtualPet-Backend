@@ -1,205 +1,184 @@
 package com.virtualpet.catalog.service;
 
 import com.virtualpet.catalog.domain.ProductEntity;
-import com.virtualpet.catalog.domain.ProductSort;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
-import com.virtualpet.catalog.dto.CatalogDtos.CatalogFacetsResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.CategoryResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.FacetOption;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductDetailResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductPageResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductSummaryResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.VariantBySkuResponse;
-import com.virtualpet.catalog.dto.CatalogDtos.VariantResponse;
-import com.virtualpet.catalog.repository.CategoryRepository;
+import com.virtualpet.catalog.dto.CatalogDtos.Product;
+import com.virtualpet.catalog.dto.CatalogDtos.ProductSummary;
+import com.virtualpet.catalog.dto.CatalogDtos.Sku;
 import com.virtualpet.catalog.repository.ProductRepository;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.catalog.spec.ProductSpecifications;
 import com.virtualpet.common.exception.ApiException;
-import jakarta.persistence.criteria.JoinType;
+import com.virtualpet.common.pagination.Cursor;
+import com.virtualpet.common.pagination.CursorCodec;
+import com.virtualpet.common.pagination.CursorPage;
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CatalogService {
 
+  private static final TypeReference<Map<String, String>> ATTRS_TYPE = new TypeReference<>() {};
+
   private final ProductRepository productRepository;
   private final ProductVariantRepository variantRepository;
-  private final CategoryRepository categoryRepository;
+  private final CursorCodec cursorCodec;
+  private final ObjectMapper objectMapper;
 
   @Transactional(readOnly = true)
-  public ProductPageResponse list(
+  public CursorPage<ProductSummary> list(
       String q,
       String category,
       String petType,
-      String brand,
       BigDecimal minPrice,
       BigDecimal maxPrice,
-      String sort,
-      int page,
-      int size) {
+      String cursor,
+      int limit) {
+    int effectiveLimit = clampLimit(limit);
+    Cursor decoded = cursorCodec.decode(cursor);
+
     Specification<ProductEntity> spec =
-        ProductSpecifications.active()
-            .and(ProductSpecifications.search(q))
-            .and(ProductSpecifications.categorySlug(category))
-            .and(ProductSpecifications.brand(brand))
-            .and(ProductSpecifications.priceRange(minPrice, maxPrice));
+        Specification.allOf(
+            Stream.of(
+                    ProductSpecifications.active(),
+                    ProductSpecifications.search(q),
+                    ProductSpecifications.category(category),
+                    ProductSpecifications.petType(petType),
+                    ProductSpecifications.priceRange(minPrice, maxPrice),
+                    ProductSpecifications.afterCursor(decoded))
+                .filter(Objects::nonNull)
+                .toList());
 
-    Page<ProductEntity> result =
-        productRepository.findAll(
-            spec, PageRequest.of(page, size, ProductSort.fromParam(sort).toSort()));
+    Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+    List<ProductEntity> rows =
+        productRepository.findAll(spec, PageRequest.of(0, effectiveLimit + 1, sort)).getContent();
 
+    boolean hasMore = rows.size() > effectiveLimit;
+    if (hasMore) {
+      rows = rows.subList(0, effectiveLimit);
+    }
+
+    Map<UUID, List<ProductVariantEntity>> variantsByProduct = loadVariantsByProductId(rows);
+    List<ProductSummary> data =
+        rows.stream()
+            .map(p -> toSummary(p, variantsByProduct.getOrDefault(p.getId(), List.of())))
+            .toList();
+
+    String nextCursor =
+        hasMore
+            ? cursorCodec.encode(Cursor.of(rows.getLast().getCreatedAt(), rows.getLast().getId()))
+            : null;
     log.debug(
-        "Product list query: q={}, category={}, brand={}, page={} → {} results",
+        "Product list: q={}, category={}, petType={}, returned={}, hasMore={}",
         q,
         category,
-        brand,
-        page,
-        result.getTotalElements());
-    List<ProductSummaryResponse> items = result.getContent().stream().map(this::toSummary).toList();
-    return new ProductPageResponse(items, result.getTotalElements(), page, size);
+        petType,
+        data.size(),
+        hasMore);
+    return CursorPage.of(data, effectiveLimit, nextCursor);
   }
 
   @Transactional(readOnly = true)
-  public List<CategoryResponse> listCategories() {
-    return categoryRepository.findAllWithProductCounts().stream()
-        .map(
-            row ->
-                new CategoryResponse(
-                    ((UUID) row[0]).toString(), (String) row[1], (String) row[2], (Long) row[3]))
-        .toList();
+  public Product getById(UUID id) {
+    ProductEntity product =
+        productRepository
+            .findByIdWithVariantsAndCategory(id)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Product not found"));
+    return toDetail(product);
   }
 
-  @Transactional(readOnly = true)
-  public CatalogFacetsResponse getFacets() {
-    List<CategoryResponse> categories = listCategories();
-    List<FacetOption> brands =
-        productRepository.countActiveByBrand().stream()
-            .map(row -> new FacetOption((String) row[0], (String) row[0], (Long) row[1]))
-            .toList();
-    return new CatalogFacetsResponse(Collections.emptyList(), categories, brands);
-  }
-
-  @Transactional(readOnly = true)
-  public ProductDetailResponse getById(UUID id) {
-    return toDetail(loadProduct(id));
-  }
-
-  @Transactional(readOnly = true)
-  public ProductDetailResponse getBySlug(String slug) {
-    try {
-      return getById(UUID.fromString(slug));
-    } catch (IllegalArgumentException ex) {
-      throw new ApiException(HttpStatus.NOT_FOUND, "Producto no encontrado");
+  private int clampLimit(int requested) {
+    if (requested <= 0) {
+      return 20;
     }
+    return Math.min(requested, 100);
   }
 
-  @Transactional(readOnly = true)
-  public VariantBySkuResponse getVariantBySku(String sku) {
-    ProductVariantEntity variant =
-        variantRepository
-            .findBySkuWithProduct(sku)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "SKU no encontrado"));
-    ProductEntity product = variant.getProduct();
-    return new VariantBySkuResponse(
-        toVariant(variant),
-        product.getId().toString(),
-        product.getId().toString(),
-        product.getName(),
-        product.getCategory().getSlug(),
-        null,
-        product.getBrand());
+  private Map<UUID, List<ProductVariantEntity>> loadVariantsByProductId(List<ProductEntity> rows) {
+    if (rows.isEmpty()) {
+      return Map.of();
+    }
+    List<UUID> ids = rows.stream().map(ProductEntity::getId).toList();
+    return variantRepository.findByProductIdIn(ids).stream()
+        .collect(Collectors.groupingBy(v -> v.getProduct().getId()));
   }
 
-  @Transactional(readOnly = true)
-  public ProductVariantEntity getVariant(UUID variantId) {
-    return variantRepository
-        .findByIdWithProduct(variantId)
-        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Variante no encontrada"));
-  }
-
-  private ProductEntity loadProduct(UUID id) {
-    Specification<ProductEntity> spec =
-        (root, query, cb) -> {
-          query.distinct(true);
-          root.fetch("category", JoinType.LEFT);
-          root.fetch("variants", JoinType.LEFT);
-          return cb.and(cb.equal(root.get("id"), id), cb.isTrue(root.get("active")));
-        };
-    return productRepository.findAll(spec).stream()
-        .findFirst()
-        .orElseThrow(
-            () -> {
-              log.warn("Product not found: {}", id);
-              return new ApiException(HttpStatus.NOT_FOUND, "Producto no encontrado");
-            });
-  }
-
-  private ProductSummaryResponse toSummary(ProductEntity product) {
-    List<ProductVariantEntity> variants = variantRepository.findByProductId(product.getId());
-    BigDecimal minPrice =
+  private ProductSummary toSummary(ProductEntity product, List<ProductVariantEntity> variants) {
+    BigDecimal basePrice =
         variants.stream()
             .map(ProductVariantEntity::getPrice)
             .min(Comparator.naturalOrder())
             .orElse(BigDecimal.ZERO);
-    String image =
+    String thumbnail =
         variants.stream()
             .map(ProductVariantEntity::getImageUrl)
             .filter(url -> url != null && !url.isBlank())
             .findFirst()
             .orElse(null);
-    return new ProductSummaryResponse(
-        product.getId().toString(),
-        product.getId().toString(),
+    return new ProductSummary(
+        product.getId(),
         product.getName(),
-        product.getDescription(),
-        minPrice,
-        product.getCategory().getName(),
-        product.getCategory().getSlug(),
-        null,
-        product.getBrand(),
-        image,
-        minPrice);
+        product.getCategory() == null ? null : product.getCategory().getName(),
+        product.getPetType(),
+        basePrice,
+        thumbnail);
   }
 
-  private ProductDetailResponse toDetail(ProductEntity product) {
-    List<VariantResponse> variants = product.getVariants().stream().map(this::toVariant).toList();
-    return new ProductDetailResponse(
-        product.getId().toString(),
-        product.getId().toString(),
-        product.getName(),
-        product.getDescription(),
+  private Product toDetail(ProductEntity product) {
+    List<ProductVariantEntity> variants = product.getVariants();
+    List<Sku> skus = variants.stream().map(this::toSku).toList();
+    List<String> images =
         variants.stream()
-            .map(VariantResponse::price)
-            .min(Comparator.naturalOrder())
-            .orElse(BigDecimal.ZERO),
-        product.getCategory().getName(),
-        product.getCategory().getSlug(),
-        null,
-        product.getBrand(),
-        variants);
+            .map(ProductVariantEntity::getImageUrl)
+            .filter(url -> url != null && !url.isBlank())
+            .distinct()
+            .toList();
+    return new Product(
+        product.getId(),
+        product.getName(),
+        product.getDescription(),
+        product.getCategory() == null ? null : product.getCategory().getName(),
+        product.getPetType(),
+        images,
+        skus);
   }
 
-  private VariantResponse toVariant(ProductVariantEntity v) {
-    return new VariantResponse(
-        v.getId().toString(),
-        v.getSku(),
-        v.getAttributes(),
-        v.getPrice(),
-        v.getStock(),
-        v.getImageUrl());
+  private Sku toSku(ProductVariantEntity variant) {
+    return new Sku(
+        variant.getId(),
+        parseAttributes(variant.getAttributes()),
+        variant.getPrice(),
+        variant.getStock() > 0);
+  }
+
+  private Map<String, String> parseAttributes(String json) {
+    if (json == null || json.isBlank()) {
+      return new LinkedHashMap<>();
+    }
+    try {
+      return objectMapper.readValue(json, ATTRS_TYPE);
+    } catch (Exception ex) {
+      log.warn("Failed to parse attributes JSON: {}", ex.getMessage());
+      return new LinkedHashMap<>();
+    }
   }
 }

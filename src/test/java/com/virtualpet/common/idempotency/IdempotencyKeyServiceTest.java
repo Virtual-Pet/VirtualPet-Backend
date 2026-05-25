@@ -9,7 +9,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.virtualpet.common.exception.ApiException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class IdempotencyKeyServiceTest {
@@ -34,7 +34,7 @@ class IdempotencyKeyServiceTest {
   @BeforeEach
   void setup() {
     when(redis.opsForValue()).thenReturn(valueOps);
-    service = new IdempotencyKeyService(redis, new ObjectMapper());
+    service = new IdempotencyKeyService(redis, JsonMapper.builder().build());
   }
 
   @Test

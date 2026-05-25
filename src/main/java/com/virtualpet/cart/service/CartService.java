@@ -1,7 +1,5 @@
 package com.virtualpet.cart.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.virtualpet.cart.domain.Cart;
 import com.virtualpet.cart.domain.CartItem;
 import com.virtualpet.cart.dto.CartDTO.AddItemRequest;
@@ -14,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Service
@@ -114,7 +114,7 @@ public class CartService {
     }
     try {
       return objectMapper.readValue(json, Cart.class);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.warn("Failed to deserialize cart for sessionId={}, returning empty cart", sessionId, e);
       return Cart.builder().build();
     }
@@ -124,7 +124,7 @@ public class CartService {
     try {
       String json = objectMapper.writeValueAsString(cart);
       redisTemplate.opsForValue().set(key(sessionId), json, TTL_HOURS, TimeUnit.HOURS);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al guardar el carrito");
     }
   }
