@@ -216,19 +216,17 @@ class ShipmentControllerTest {
     new TransactionTemplate(txManager)
         .executeWithoutResult(
             tx -> {
-              em.createNativeQuery("DELETE FROM logistics.shipment_status").executeUpdate();
-              em.createNativeQuery("DELETE FROM logistics.shipments").executeUpdate();
+              em.createNativeQuery("DELETE FROM shipments.shipment_status").executeUpdate();
+              em.createNativeQuery("DELETE FROM shipments.shipments").executeUpdate();
               em.createQuery("DELETE FROM PaymentEntity").executeUpdate();
               em.createQuery("DELETE FROM OrderItemEntity").executeUpdate();
               em.createQuery("DELETE FROM OrderEntity").executeUpdate();
-              em.createQuery("DELETE FROM CheckoutSessionEntity").executeUpdate();
               em.createQuery("DELETE FROM ProductVariantEntity").executeUpdate();
               em.createQuery("DELETE FROM ProductEntity").executeUpdate();
               em.createQuery("DELETE FROM CategoryEntity").executeUpdate();
               em.createQuery("DELETE FROM EmployeeEntity").executeUpdate();
               em.createQuery("DELETE FROM CustomerEntity").executeUpdate();
               em.createQuery("DELETE FROM RefreshTokenEntity").executeUpdate();
-              em.createQuery("DELETE FROM PasswordResetTokenEntity").executeUpdate();
               em.createQuery("DELETE FROM UserEntity").executeUpdate();
               em.flush();
             });
@@ -293,8 +291,6 @@ class ShipmentControllerTest {
                           .passwordHash(passwordEncoder.encode(pwd))
                           .role(UserRole.ROLE_EMPLOYEE)
                           .active(true)
-                          .emailVerified(true)
-                          .forcePasswordChange(false)
                           .build());
               employeeRepository.save(
                   EmployeeEntity.builder().userId(u.getId()).name("Ops").lastname("X").build());

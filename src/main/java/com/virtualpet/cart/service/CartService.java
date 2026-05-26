@@ -2,8 +2,8 @@ package com.virtualpet.cart.service;
 
 import com.virtualpet.cart.domain.Cart;
 import com.virtualpet.cart.domain.CartItem;
-import com.virtualpet.cart.dto.CartDTO.CartItemQuantity;
-import com.virtualpet.cart.dto.CartDTO.Totals;
+import com.virtualpet.cart.dto.CartDTO.CartItemQuantityDTO;
+import com.virtualpet.cart.dto.CartDTO.TotalsDTO;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.common.exception.ApiException;
@@ -45,12 +45,12 @@ public class CartService {
 
   /* ---------- Public API ---------- */
 
-  public com.virtualpet.cart.dto.CartDTO.Cart getCart(UUID userId) {
+  public com.virtualpet.cart.dto.CartDTO.CartViewDTO getCart(UUID userId) {
     Cart cart = loadCart(userId);
     return toDto(cart);
   }
 
-  public CartItemQuantity putItem(UUID userId, UUID skuId, int quantity) {
+  public CartItemQuantityDTO putItem(UUID userId, UUID skuId, int quantity) {
     if (quantity < 1) {
       throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Quantity must be at least 1");
     }
@@ -64,7 +64,7 @@ public class CartService {
       cart.getItems().add(CartItem.builder().skuId(skuId).quantity(quantity).build());
     }
     saveCart(userId, cart);
-    return new CartItemQuantity(skuId, quantity);
+    return new CartItemQuantityDTO(skuId, quantity);
   }
 
   public void removeItem(UUID userId, UUID skuId) {
@@ -119,33 +119,33 @@ public class CartService {
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "SKU not found"));
   }
 
-  private com.virtualpet.cart.dto.CartDTO.Cart toDto(Cart cart) {
+  private com.virtualpet.cart.dto.CartDTO.CartViewDTO toDto(Cart cart) {
     if (cart.getItems().isEmpty()) {
-      return new com.virtualpet.cart.dto.CartDTO.Cart(
-          List.of(), new Totals(BigDecimal.ZERO, SHIPPING, SHIPPING), CURRENCY);
+      return new com.virtualpet.cart.dto.CartDTO.CartViewDTO(
+          List.of(), new TotalsDTO(BigDecimal.ZERO, SHIPPING, SHIPPING), CURRENCY);
     }
 
     List<UUID> ids = cart.getItems().stream().map(CartItem::getSkuId).toList();
     Map<UUID, ProductVariantEntity> byId = fetchVariants(ids);
 
-    List<com.virtualpet.cart.dto.CartDTO.CartItem> dtoItems =
+    List<com.virtualpet.cart.dto.CartDTO.CartItemDTO> dtoItems =
         cart.getItems().stream()
             .map(
                 item -> {
                   ProductVariantEntity variant = byId.get(item.getSkuId());
                   BigDecimal unitPrice = variant == null ? BigDecimal.ZERO : variant.getPrice();
                   BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
-                  return new com.virtualpet.cart.dto.CartDTO.CartItem(
+                  return new com.virtualpet.cart.dto.CartDTO.CartItemDTO(
                       item.getSkuId(), item.getQuantity(), unitPrice, subtotal);
                 })
             .toList();
 
     BigDecimal itemsTotal =
         dtoItems.stream()
-            .map(com.virtualpet.cart.dto.CartDTO.CartItem::subtotal)
+            .map(com.virtualpet.cart.dto.CartDTO.CartItemDTO::subtotal)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-    Totals totals = new Totals(itemsTotal, SHIPPING, itemsTotal.add(SHIPPING));
-    return new com.virtualpet.cart.dto.CartDTO.Cart(dtoItems, totals, CURRENCY);
+    TotalsDTO totals = new TotalsDTO(itemsTotal, SHIPPING, itemsTotal.add(SHIPPING));
+    return new com.virtualpet.cart.dto.CartDTO.CartViewDTO(dtoItems, totals, CURRENCY);
   }
 
   private Map<UUID, ProductVariantEntity> fetchVariants(Collection<UUID> ids) {

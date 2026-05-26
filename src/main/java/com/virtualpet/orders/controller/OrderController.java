@@ -3,10 +3,10 @@ package com.virtualpet.orders.controller;
 import com.virtualpet.common.pagination.CursorPage;
 import com.virtualpet.common.security.UserPrincipal;
 import com.virtualpet.orders.domain.OrderStatus;
-import com.virtualpet.orders.dto.OrderDTO.CancelOrderRequest;
-import com.virtualpet.orders.dto.OrderDTO.OrderCancellation;
-import com.virtualpet.orders.dto.OrderDTO.OrderResponse;
-import com.virtualpet.orders.dto.OrderDTO.OrderSummary;
+import com.virtualpet.orders.dto.OrderDTO.CancelOrderRequestDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderCancellationDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderResponseDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderSummaryDTO;
 import com.virtualpet.orders.service.OrderService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -32,7 +32,7 @@ public class OrderController {
   private final OrderService orderService;
 
   @GetMapping
-  public CursorPage<OrderSummary> list(
+  public CursorPage<OrderSummaryDTO> list(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @RequestParam(required = false) OrderStatus status,
       @RequestParam(required = false, name = "user") UUID userFilter,
@@ -43,16 +43,16 @@ public class OrderController {
   }
 
   @GetMapping("/{id}")
-  public OrderResponse get(
+  public OrderResponseDTO get(
       @AuthenticationPrincipal UserPrincipal currentUser, @PathVariable UUID id) {
     return orderService.getById(id, currentUser.getId(), isCustomer(currentUser));
   }
 
   @PostMapping("/{id}/cancel")
-  public OrderCancellation cancel(
+  public OrderCancellationDTO cancel(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @PathVariable UUID id,
-      @Valid @RequestBody(required = false) CancelOrderRequest request) {
+      @Valid @RequestBody(required = false) CancelOrderRequestDTO request) {
     String reason = request == null ? null : request.reason();
     return orderService.cancel(id, currentUser.getId(), isCustomer(currentUser), reason);
   }

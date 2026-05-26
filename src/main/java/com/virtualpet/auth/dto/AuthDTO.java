@@ -16,46 +16,41 @@ public final class AuthDTO {
 
   /* ---------- Requests ---------- */
 
-  public record LoginRequest(@Email @NotBlank String email, @NotBlank String password) {}
+  public record LoginRequestDTO(@Email @NotBlank String email, @NotBlank String password) {}
 
-  public record LogoutRequest(@NotBlank String refreshToken) {}
+  public record LogoutRequestDTO(@NotBlank String refreshToken) {}
 
-  public record RefreshRequest(@NotBlank String refreshToken) {}
+  public record RefreshRequestDTO(@NotBlank String refreshToken) {}
 
-  public record RegisterCustomerRequest(
+  public record RegisterCustomerRequestDTO(
       @Email @NotBlank String email,
       @NotBlank @Size(min = 8, max = 100) String password,
       @NotBlank String firstName,
       @NotBlank String lastName) {}
 
-  public record RegisterEmployeeRequest(
+  public record RegisterEmployeeRequestDTO(
       @Email @NotBlank String email,
       @NotBlank @Size(min = 8, max = 100) String password,
       @NotBlank String firstName,
       @NotBlank String lastName) {}
 
-  public record UpdateMeRequest(String firstName, String lastName) {}
+  public record UpdateMeRequestDTO(String firstName, String lastName) {}
 
-  public record ForgotPasswordRequest(@Email @NotBlank String email) {}
-
-  public record ResetPasswordRequest(
-      @NotBlank String token, @NotBlank @Size(min = 8, max = 100) String newPassword) {}
-
-  public record ChangePasswordRequest(
+  public record ChangePasswordRequestDTO(
       @NotBlank String currentPassword, @NotBlank @Size(min = 8, max = 100) String newPassword) {}
 
   /* ---------- Responses ---------- */
 
-  public record AuthTokens(
+  public record AuthTokensDTO(
       String accessToken,
       String refreshToken,
       String tokenType,
       long expiresIn,
-      UserSummary user) {}
+      UserSummaryDTO user) {}
 
-  public record RefreshResponse(String accessToken, String tokenType, long expiresIn) {}
+  public record RefreshResponseDTO(String accessToken, String tokenType, long expiresIn) {}
 
-  public record UserSummary(UUID id, String email, UserRole role) {}
+  public record UserSummaryDTO(UUID id, String email, UserRole role) {}
 
-  public record User(UUID id, String email, String firstName, String lastName, UserRole role) {}
+  public record UserDTO(UUID id, String email, String firstName, String lastName, UserRole role) {}
 }

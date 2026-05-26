@@ -13,7 +13,6 @@ import com.virtualpet.catalog.domain.ProductEntity;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
 import com.virtualpet.catalog.repository.ProductRepository;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
-import com.virtualpet.orders.repository.CheckoutSessionRepository;
 import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.orders.repository.PaymentRepository;
 import com.virtualpet.shipments.repository.ShipmentRepository;
@@ -45,7 +44,6 @@ class CheckoutFlowTest {
   @Autowired private ObjectMapper objectMapper;
   @Autowired private ProductRepository productRepository;
   @Autowired private ProductVariantRepository variantRepository;
-  @Autowired private CheckoutSessionRepository sessionRepository;
   @Autowired private PaymentRepository paymentRepository;
   @Autowired private OrderRepository orderRepository;
   @Autowired private ShipmentRepository shipmentRepository;
@@ -75,10 +73,9 @@ class CheckoutFlowTest {
         .executeWithoutResult(
             tx -> {
               em.createQuery("DELETE FROM PaymentEntity").executeUpdate();
-              em.createNativeQuery("DELETE FROM logistics.shipments").executeUpdate();
+              em.createNativeQuery("DELETE FROM shipments.shipments").executeUpdate();
               em.createQuery("DELETE FROM OrderItemEntity").executeUpdate();
               em.createQuery("DELETE FROM OrderEntity").executeUpdate();
-              em.createQuery("DELETE FROM CheckoutSessionEntity").executeUpdate();
               em.createQuery("DELETE FROM ProductVariantEntity").executeUpdate();
               em.createQuery("DELETE FROM ProductEntity").executeUpdate();
               em.createQuery("DELETE FROM CategoryEntity").executeUpdate();

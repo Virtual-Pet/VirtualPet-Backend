@@ -89,7 +89,7 @@ class CartServiceTest {
 
   @Test
   void getCartLazilyReturnsEmptyCartWhenNoneStored() {
-    CartDTO.Cart cart = service.getCart(userId);
+    CartDTO.CartViewDTO cart = service.getCart(userId);
 
     assertThat(cart.items()).isEmpty();
     assertThat(cart.totals().items()).isEqualByComparingTo(BigDecimal.ZERO);
@@ -101,13 +101,13 @@ class CartServiceTest {
   void putItemAddsLineAndComputesTotals() {
     UUID skuA = registerVariant("100.00");
 
-    CartDTO.CartItemQuantity result = service.putItem(userId, skuA, 3);
+    CartDTO.CartItemQuantityDTO result = service.putItem(userId, skuA, 3);
     assertThat(result.skuId()).isEqualTo(skuA);
     assertThat(result.quantity()).isEqualTo(3);
 
-    CartDTO.Cart cart = service.getCart(userId);
+    CartDTO.CartViewDTO cart = service.getCart(userId);
     assertThat(cart.items()).hasSize(1);
-    CartDTO.CartItem line = cart.items().getFirst();
+    CartDTO.CartItemDTO line = cart.items().getFirst();
     assertThat(line.skuId()).isEqualTo(skuA);
     assertThat(line.quantity()).isEqualTo(3);
     assertThat(line.unitPrice()).isEqualByComparingTo("100.00");
@@ -123,7 +123,7 @@ class CartServiceTest {
     service.putItem(userId, skuA, 2);
     service.putItem(userId, skuA, 5);
 
-    CartDTO.Cart cart = service.getCart(userId);
+    CartDTO.CartViewDTO cart = service.getCart(userId);
     assertThat(cart.items()).hasSize(1);
     assertThat(cart.items().getFirst().quantity()).isEqualTo(5);
   }
@@ -136,7 +136,7 @@ class CartServiceTest {
     service.putItem(userId, skuA, 2);
     service.putItem(userId, skuB, 1);
 
-    CartDTO.Cart cart = service.getCart(userId);
+    CartDTO.CartViewDTO cart = service.getCart(userId);
     assertThat(cart.items()).hasSize(2);
     assertThat(cart.totals().items()).isEqualByComparingTo("400.00");
   }

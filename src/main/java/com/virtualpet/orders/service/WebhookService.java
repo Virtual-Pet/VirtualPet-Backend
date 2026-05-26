@@ -1,7 +1,7 @@
 package com.virtualpet.orders.service;
 
 import com.virtualpet.common.exception.ApiException;
-import com.virtualpet.orders.domain.CheckoutSessionEntity;
+import com.virtualpet.orders.domain.CheckoutSession;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.PaymentStatus;
 import com.virtualpet.orders.domain.SessionStatus;
@@ -74,7 +74,7 @@ public class WebhookService {
     if (payment.getSessionId() == null) {
       return;
     }
-    CheckoutSessionEntity session = sessionService.loadById(payment.getSessionId());
+    CheckoutSession session = sessionService.loadById(payment.getSessionId());
     switch (newStatus) {
       case PAID -> {
         if (session.getStatus() == SessionStatus.AWAITING_PAYMENT) {

@@ -6,30 +6,29 @@ import com.virtualpet.cart.service.CartService;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.common.exception.ApiException;
-import com.virtualpet.orders.domain.CheckoutSessionEntity;
+import com.virtualpet.orders.domain.CheckoutSession;
 import com.virtualpet.orders.domain.SessionLineItem;
 import com.virtualpet.orders.domain.SessionStatus;
 import com.virtualpet.orders.domain.SessionTotals;
-import com.virtualpet.orders.dto.CheckoutDTO.CheckoutSessionResponse;
-import com.virtualpet.orders.dto.CheckoutDTO.SetShippingAddressRequest;
-import com.virtualpet.orders.repository.CheckoutSessionRepository;
+import com.virtualpet.orders.dto.CheckoutDTO.CheckoutSessionResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.SetShippingAddressRequestDTO;
+import com.virtualpet.orders.repository.CheckoutSessionRedisRepository;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Owns the lifecycle of a CheckoutSession: build the immutable snapshot from the user's cart, track
- * the address, expose the read view. Payment + confirmation live in their own services.
+ * Owns the lifecycle of a CheckoutSession. Sessions are ephemeral and live in Redis with a TTL;
+ * only the confirmed Order (post-payment) is persisted in Postgres.
  */
 @Slf4j
 @Service
@@ -39,19 +38,15 @@ public class CheckoutSessionService {
   private static final Duration SESSION_TTL = Duration.ofMinutes(30);
   private static final String CURRENCY = "ARS";
   private static final BigDecimal SHIPPING = BigDecimal.ZERO;
-  private static final EnumSet<SessionStatus> ACTIVE_STATUSES =
-      EnumSet.of(SessionStatus.PENDING, SessionStatus.AWAITING_PAYMENT);
 
-  private final CheckoutSessionRepository sessionRepository;
+  private final CheckoutSessionRedisRepository sessionRepository;
   private final CartService cartService;
   private final ProductVariantRepository variantRepository;
 
-  public record StartResult(CheckoutSessionResponse response, boolean created) {}
+  public record StartResult(CheckoutSessionResponseDTO response, boolean created) {}
 
-  @Transactional
   public StartResult startCheckout(UUID userId) {
-    var active =
-        sessionRepository.findFirstByUserIdAndStatusInOrderByCreatedAtDesc(userId, ACTIVE_STATUSES);
+    Optional<CheckoutSession> active = sessionRepository.findActiveByUser(userId);
     if (active.isPresent() && !isExpired(active.get())) {
       log.debug("Reusing active checkout session {}", active.get().getId());
       return new StartResult(toResponse(active.get()), false);
@@ -79,8 +74,9 @@ public class CheckoutSessionService {
         lineItems.stream().map(SessionLineItem::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     SessionTotals totals = new SessionTotals(itemsTotal, SHIPPING, itemsTotal.add(SHIPPING));
 
-    CheckoutSessionEntity entity =
-        CheckoutSessionEntity.builder()
+    CheckoutSession session =
+        CheckoutSession.builder()
+            .id(UUID.randomUUID())
             .userId(userId)
             .status(SessionStatus.PENDING)
             .lineItems(lineItems)
@@ -88,57 +84,82 @@ public class CheckoutSessionService {
             .currency(CURRENCY)
             .expiresAt(Instant.now().plus(SESSION_TTL))
             .build();
-    CheckoutSessionEntity saved = sessionRepository.save(entity);
-    log.info("Checkout session created: id={}, userId={}", saved.getId(), userId);
-    return new StartResult(toResponse(saved), true);
+
+    boolean claimed = sessionRepository.tryClaimActive(userId, session.getId(), SESSION_TTL);
+    if (!claimed) {
+      Optional<CheckoutSession> existing = sessionRepository.findActiveByUser(userId);
+      if (existing.isPresent() && !isExpired(existing.get())) {
+        log.debug("Lost race claiming active slot; returning existing session {}", existing.get().getId());
+        return new StartResult(toResponse(existing.get()), false);
+      }
+    }
+
+    sessionRepository.save(session);
+    log.info("Checkout session created: id={}, userId={}", session.getId(), userId);
+    return new StartResult(toResponse(session), true);
   }
 
-  @Transactional(readOnly = true)
-  public CheckoutSessionResponse getSession(UUID id, UUID userId) {
-    CheckoutSessionEntity entity = loadOwned(id, userId);
-    return toResponse(entity);
+  public CheckoutSessionResponseDTO getSession(UUID id, UUID userId) {
+    CheckoutSession session = loadOwned(id, userId);
+    return toResponse(session);
   }
 
-  @Transactional
-  public CheckoutSessionResponse setShippingAddress(
-      UUID id, UUID userId, SetShippingAddressRequest request) {
-    CheckoutSessionEntity entity = loadOwned(id, userId);
-    if (entity.getStatus() != SessionStatus.PENDING
-        && entity.getStatus() != SessionStatus.AWAITING_PAYMENT) {
+  public CheckoutSessionResponseDTO setShippingAddress(
+      UUID id, UUID userId, SetShippingAddressRequestDTO request) {
+    CheckoutSession session = loadOwned(id, userId);
+    if (session.getStatus() != SessionStatus.PENDING
+        && session.getStatus() != SessionStatus.AWAITING_PAYMENT) {
       throw new ApiException(
           HttpStatus.CONFLICT,
-          "Shipping address cannot be modified once the session is " + entity.getStatus());
+          "Shipping address cannot be modified once the session is " + session.getStatus());
     }
-    entity.setShippingAddress(request.toAddress());
-    return toResponse(sessionRepository.save(entity));
+    session.setShippingAddress(request.toAddress());
+    sessionRepository.save(session);
+    return toResponse(session);
   }
 
   /** Loads a session and asserts the principal owns it. */
-  public CheckoutSessionEntity loadOwned(UUID id, UUID userId) {
-    CheckoutSessionEntity entity =
-        sessionRepository
-            .findByIdAndUserId(id, userId)
-            .orElseThrow(
-                () -> new ApiException(HttpStatus.NOT_FOUND, "Checkout session not found"));
-    return entity;
+  public CheckoutSession loadOwned(UUID id, UUID userId) {
+    return sessionRepository
+        .findByIdAndUserId(id, userId)
+        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Checkout session not found"));
   }
 
-  public CheckoutSessionResponse toResponse(CheckoutSessionEntity entity) {
-    return new CheckoutSessionResponse(
-        entity.getId(),
-        entity.getStatus(),
-        entity.getLineItems(),
-        entity.getTotals(),
-        entity.getCurrency(),
-        entity.getShippingAddress(),
-        entity.getExpiresAt());
+  /** Re-exposed for the orchestrator / webhook (no ownership check — internal). */
+  public CheckoutSession loadById(UUID id) {
+    return sessionRepository
+        .findById(id)
+        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Checkout session not found"));
   }
 
-  private boolean isExpired(CheckoutSessionEntity entity) {
-    if (entity.getExpiresAt() == null) {
-      return false;
+  public CheckoutSession save(CheckoutSession session) {
+    CheckoutSession saved = sessionRepository.save(session);
+    if (isTerminal(session.getStatus())) {
+      sessionRepository.clearActive(session.getUserId());
     }
-    return entity.getExpiresAt().isBefore(Instant.now());
+    return saved;
+  }
+
+  public CheckoutSessionResponseDTO toResponse(CheckoutSession session) {
+    return new CheckoutSessionResponseDTO(
+        session.getId(),
+        session.getStatus(),
+        session.getLineItems(),
+        session.getTotals(),
+        session.getCurrency(),
+        session.getShippingAddress(),
+        session.getExpiresAt());
+  }
+
+  private boolean isExpired(CheckoutSession session) {
+    return session.getExpiresAt() != null && session.getExpiresAt().isBefore(Instant.now());
+  }
+
+  private boolean isTerminal(SessionStatus status) {
+    return status == SessionStatus.PAID
+        || status == SessionStatus.CONFIRMED
+        || status == SessionStatus.FAILED
+        || status == SessionStatus.EXPIRED;
   }
 
   private Map<UUID, ProductVariantEntity> fetchVariants(Cart cart) {
@@ -169,16 +190,5 @@ public class CheckoutSessionService {
                 + ")");
       }
     }
-  }
-
-  /** Re-exposed for the orchestrator. */
-  public CheckoutSessionEntity loadById(UUID id) {
-    return sessionRepository
-        .findById(id)
-        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Checkout session not found"));
-  }
-
-  public CheckoutSessionEntity save(CheckoutSessionEntity entity) {
-    return sessionRepository.save(entity);
   }
 }

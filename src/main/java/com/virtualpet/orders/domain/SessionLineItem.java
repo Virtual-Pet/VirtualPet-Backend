@@ -4,6 +4,6 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/** Immutable line snapshot stored on checkout_sessions.line_items (JSONB). */
+/** Immutable line snapshot inside a {@link CheckoutSession}. */
 public record SessionLineItem(UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal)
     implements Serializable {}

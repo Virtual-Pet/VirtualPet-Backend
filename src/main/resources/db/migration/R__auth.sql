@@ -17,7 +17,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_users_updated_at
+CREATE OR REPLACE TRIGGER trg_users_updated_at
 BEFORE UPDATE ON auth.users
 FOR EACH ROW
 WHEN (OLD.* IS DISTINCT FROM NEW.*) -- Solo se ejecuta si realmente cambió algún dato
@@ -45,7 +45,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_users_desactivar_sesiones
+CREATE OR REPLACE TRIGGER trg_users_desactivar_sesiones
 AFTER UPDATE OF active ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION auth.fn_revocar_sesiones_inactivas();
@@ -65,7 +65,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_users_sanitizar_email
+CREATE OR REPLACE TRIGGER trg_users_sanitizar_email
 BEFORE INSERT OR UPDATE OF email ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION auth.fn_sanitizar_email();

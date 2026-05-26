@@ -49,15 +49,11 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
@@ -87,6 +83,14 @@
 		</dependency>
 
 
+		<!--
+			Lombok is managed by the Spring Boot BOM (currently 1.18.46, the latest
+			published release). On JDK 25 the annotation processor logs a
+			`sun.misc.Unsafe::objectFieldOffset` deprecation warning from
+			`lombok.permit.Permit`; it is harmless today but Unsafe will be removed
+			in a future JDK. Track https://github.com/projectlombok/lombok/issues/2681
+			and bump the BOM-managed version once a fixed Lombok release ships.
+		-->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>

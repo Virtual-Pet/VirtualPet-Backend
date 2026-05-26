@@ -29,9 +29,7 @@ public class RateLimitFilter extends OncePerRequestFilter implements Ordered {
   private static final List<RateLimitRule> RULES =
       List.of(
           new RateLimitRule("POST", "/api/v1/auth/login", 10, Duration.ofMinutes(1)),
-          new RateLimitRule("POST", "/api/v1/auth/register/customer", 5, Duration.ofMinutes(10)),
-          new RateLimitRule("POST", "/api/v1/auth/password/forgot", 5, Duration.ofMinutes(10)),
-          new RateLimitRule("POST", "/api/v1/auth/password/reset", 5, Duration.ofMinutes(10)));
+          new RateLimitRule("POST", "/api/v1/auth/register/customer", 5, Duration.ofMinutes(10)));
 
   private final RateLimiter rateLimiter;
   private final ObjectMapper objectMapper;

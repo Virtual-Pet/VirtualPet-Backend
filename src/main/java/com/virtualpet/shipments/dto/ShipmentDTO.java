@@ -11,17 +11,17 @@ public final class ShipmentDTO {
 
   private ShipmentDTO() {}
 
-  public record ShipmentSummary(
+  public record ShipmentSummaryDTO(
       UUID shipmentId, UUID orderId, ShipmentStatus status, Instant updatedAt) {}
 
-  public record ShipmentStatusEvent(ShipmentStatus status, Instant at) {}
+  public record ShipmentStatusEventDTO(ShipmentStatus status, Instant at) {}
 
-  public record ShipmentResponse(
+  public record ShipmentResponseDTO(
       UUID shipmentId,
       UUID orderId,
       ShipmentStatus status,
       Address shippingAddress,
-      List<ShipmentStatusEvent> statusHistory) {}
+      List<ShipmentStatusEventDTO> statusHistory) {}
 
-  public record AdvanceShipmentRequest(@NotNull ShipmentStatus status) {}
+  public record AdvanceShipmentRequestDTO(@NotNull ShipmentStatus status) {}
 }

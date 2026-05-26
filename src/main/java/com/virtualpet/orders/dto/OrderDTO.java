@@ -16,7 +16,7 @@ public final class OrderDTO {
 
   private OrderDTO() {}
 
-  public record OrderSummary(
+  public record OrderSummaryDTO(
       UUID orderId,
       OrderStatus status,
       BigDecimal total,
@@ -24,29 +24,29 @@ public final class OrderDTO {
       Instant createdAt,
       UUID shipmentId) {}
 
-  public record OrderLineItem(
+  public record OrderLineItemDTO(
       UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {}
 
-  public record OrderTotals(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
+  public record OrderTotalsDTO(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
 
-  public record OrderShipmentRef(UUID shipmentId, ShipmentStatus status) {}
+  public record OrderShipmentRefDTO(UUID shipmentId, ShipmentStatus status) {}
 
-  public record OrderResponse(
+  public record OrderResponseDTO(
       UUID orderId,
       UUID customerId,
       OrderStatus status,
-      List<OrderLineItem> lineItems,
-      OrderTotals totals,
+      List<OrderLineItemDTO> lineItems,
+      OrderTotalsDTO totals,
       String currency,
       Address shippingAddress,
-      OrderShipmentRef shipment,
+      OrderShipmentRefDTO shipment,
       Instant createdAt) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record RefundSummary(UUID paymentId, PaymentStatus status) {}
+  public record RefundSummaryDTO(UUID paymentId, PaymentStatus status) {}
 
-  public record OrderCancellation(
-      UUID orderId, OrderStatus status, OrderShipmentRef shipment, RefundSummary refund) {}
+  public record OrderCancellationDTO(
+      UUID orderId, OrderStatus status, OrderShipmentRefDTO shipment, RefundSummaryDTO refund) {}
 
-  public record CancelOrderRequest(@Size(max = 200) String reason) {}
+  public record CancelOrderRequestDTO(@Size(max = 200) String reason) {}
 }

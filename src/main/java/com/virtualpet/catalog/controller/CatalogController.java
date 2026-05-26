@@ -1,7 +1,7 @@
 package com.virtualpet.catalog.controller;
 
-import com.virtualpet.catalog.dto.CatalogDtos.Product;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductSummary;
+import com.virtualpet.catalog.dto.CatalogDTO.ProductDTO;
+import com.virtualpet.catalog.dto.CatalogDTO.ProductSummaryDTO;
 import com.virtualpet.catalog.service.CatalogService;
 import com.virtualpet.common.cache.ETagSupport;
 import com.virtualpet.common.pagination.CursorPage;
@@ -30,7 +30,7 @@ public class CatalogController {
   private final ETagSupport etag;
 
   @GetMapping
-  public ResponseEntity<CursorPage<ProductSummary>> list(
+  public ResponseEntity<CursorPage<ProductSummaryDTO>> list(
       @RequestParam(required = false) String q,
       @RequestParam(required = false) String category,
       @RequestParam(required = false) String petType,
@@ -39,13 +39,13 @@ public class CatalogController {
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int limit,
       HttpServletRequest request) {
-    CursorPage<ProductSummary> page =
+    CursorPage<ProductSummaryDTO> page =
         catalogService.list(q, category, petType, minPrice, maxPrice, cursor, limit);
     return etag.withETag(page, request, CACHE);
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<Product> get(@PathVariable UUID id, HttpServletRequest request) {
+  public ResponseEntity<ProductDTO> get(@PathVariable UUID id, HttpServletRequest request) {
     return etag.withETag(catalogService.getById(id), request, CACHE);
   }
 }

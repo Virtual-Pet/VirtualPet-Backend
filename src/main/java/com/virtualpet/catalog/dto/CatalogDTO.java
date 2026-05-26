@@ -9,11 +9,11 @@ import java.util.UUID;
  * DTOs for /products endpoints. Records map 1:1 to schemas defined in
  * docs/api/virtualpet-openapi.yaml.
  */
-public final class CatalogDtos {
+public final class CatalogDTO {
 
-  private CatalogDtos() {}
+  private CatalogDTO() {}
 
-  public record ProductSummary(
+  public record ProductSummaryDTO(
       UUID id,
       String name,
       String category,
@@ -21,15 +21,15 @@ public final class CatalogDtos {
       BigDecimal basePrice,
       String thumbnail) {}
 
-  public record Product(
+  public record ProductDTO(
       UUID id,
       String name,
       String description,
       String category,
       String petType,
       List<String> images,
-      List<Sku> skus) {}
+      List<SkuDTO> skus) {}
 
-  public record Sku(
+  public record SkuDTO(
       UUID skuId, Map<String, String> attributes, BigDecimal price, boolean available) {}
 }

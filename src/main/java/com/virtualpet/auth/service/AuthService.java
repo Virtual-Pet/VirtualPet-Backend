@@ -4,15 +4,15 @@ import com.virtualpet.auth.domain.CustomerEntity;
 import com.virtualpet.auth.domain.EmployeeEntity;
 import com.virtualpet.auth.domain.UserEntity;
 import com.virtualpet.auth.domain.enums.UserRole;
-import com.virtualpet.auth.dto.AuthDTO.AuthTokens;
-import com.virtualpet.auth.dto.AuthDTO.ChangePasswordRequest;
-import com.virtualpet.auth.dto.AuthDTO.LoginRequest;
-import com.virtualpet.auth.dto.AuthDTO.RefreshResponse;
-import com.virtualpet.auth.dto.AuthDTO.RegisterCustomerRequest;
-import com.virtualpet.auth.dto.AuthDTO.RegisterEmployeeRequest;
-import com.virtualpet.auth.dto.AuthDTO.UpdateMeRequest;
-import com.virtualpet.auth.dto.AuthDTO.User;
-import com.virtualpet.auth.dto.AuthDTO.UserSummary;
+import com.virtualpet.auth.dto.AuthDTO.AuthTokensDTO;
+import com.virtualpet.auth.dto.AuthDTO.ChangePasswordRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.LoginRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.RefreshResponseDTO;
+import com.virtualpet.auth.dto.AuthDTO.RegisterCustomerRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.RegisterEmployeeRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.UpdateMeRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.UserDTO;
+import com.virtualpet.auth.dto.AuthDTO.UserSummaryDTO;
 import com.virtualpet.auth.repository.UserRepository;
 import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
@@ -46,25 +46,23 @@ public class AuthService {
   /* ---------- Registration ---------- */
 
   @Transactional
-  public UserSummary registerCustomer(RegisterCustomerRequest request) {
-    UserEntity user =
-        createIdentity(request.email(), request.password(), UserRole.ROLE_CUSTOMER, false);
+  public UserSummaryDTO registerCustomer(RegisterCustomerRequestDTO request) {
+    UserEntity user = createIdentity(request.email(), request.password(), UserRole.ROLE_CUSTOMER);
     customerProfileService.createProfile(user.getId(), request.firstName(), request.lastName());
-    return new UserSummary(user.getId(), user.getEmail(), user.getRole());
+    return new UserSummaryDTO(user.getId(), user.getEmail(), user.getRole());
   }
 
   @Transactional
-  public UserSummary registerEmployee(RegisterEmployeeRequest request) {
-    UserEntity user =
-        createIdentity(request.email(), request.password(), UserRole.ROLE_EMPLOYEE, true);
+  public UserSummaryDTO registerEmployee(RegisterEmployeeRequestDTO request) {
+    UserEntity user = createIdentity(request.email(), request.password(), UserRole.ROLE_EMPLOYEE);
     employeeProfileService.createProfile(user.getId(), request.firstName(), request.lastName());
-    return new UserSummary(user.getId(), user.getEmail(), user.getRole());
+    return new UserSummaryDTO(user.getId(), user.getEmail(), user.getRole());
   }
 
   /* ---------- Login / logout / refresh ---------- */
 
   @Transactional
-  public AuthTokens login(LoginRequest request) {
+  public AuthTokensDTO login(LoginRequestDTO request) {
     authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(request.email().toLowerCase(), request.password()));
 
@@ -76,12 +74,12 @@ public class AuthService {
     log.info("Login successful: {}", user.getEmail());
     String accessToken = jwtService.generate(user.getId(), user.getEmail(), user.getRole().name());
     String refreshToken = refreshTokenService.createRefreshToken(user);
-    return new AuthTokens(
+    return new AuthTokensDTO(
         accessToken,
         refreshToken,
         BEARER,
         expiresInSeconds(),
-        new UserSummary(user.getId(), user.getEmail(), user.getRole()));
+        new UserSummaryDTO(user.getId(), user.getEmail(), user.getRole()));
   }
 
   public void logout(String refreshToken) {
@@ -89,22 +87,22 @@ public class AuthService {
   }
 
   @Transactional
-  public RefreshResponse refresh(String refreshToken) {
+  public RefreshResponseDTO refresh(String refreshToken) {
     UserEntity user = refreshTokenService.verifyExpiration(refreshToken);
     String accessToken = jwtService.generate(user.getId(), user.getEmail(), user.getRole().name());
-    return new RefreshResponse(accessToken, BEARER, expiresInSeconds());
+    return new RefreshResponseDTO(accessToken, BEARER, expiresInSeconds());
   }
 
   /* ---------- /auth/me ---------- */
 
   @Transactional(readOnly = true)
-  public User getMe(UUID userId) {
+  public UserDTO getMe(UUID userId) {
     UserEntity user = getById(userId);
     return assembleUser(user);
   }
 
   @Transactional
-  public User updateMe(UUID userId, UpdateMeRequest request) {
+  public UserDTO updateMe(UUID userId, UpdateMeRequestDTO request) {
     UserEntity user = getById(userId);
     switch (user.getRole()) {
       case ROLE_CUSTOMER ->
@@ -118,7 +116,7 @@ public class AuthService {
   /* ---------- Passwords ---------- */
 
   @Transactional
-  public void changePassword(UUID userId, ChangePasswordRequest request) {
+  public void changePassword(UUID userId, ChangePasswordRequestDTO request) {
     UserEntity user =
         userRepository
             .findById(userId)
@@ -133,7 +131,6 @@ public class AuthService {
     }
 
     user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
-    user.setForcePasswordChange(false);
     userRepository.save(user);
     refreshTokenService.revokeAllUserTokens(userId);
   }
@@ -141,8 +138,7 @@ public class AuthService {
   /* ---------- Internal ---------- */
 
   @Transactional
-  protected UserEntity createIdentity(
-      String email, String rawPassword, UserRole role, boolean forcePasswordChange) {
+  protected UserEntity createIdentity(String email, String rawPassword, UserRole role) {
     if (userRepository.existsByEmailIgnoreCase(email)) {
       throw new ApiException(HttpStatus.CONFLICT, "Email is already registered");
     }
@@ -152,8 +148,6 @@ public class AuthService {
             .passwordHash(passwordEncoder.encode(rawPassword))
             .role(role)
             .active(true)
-            .emailVerified(false)
-            .forcePasswordChange(forcePasswordChange)
             .build();
     return userRepository.save(user);
   }
@@ -164,7 +158,7 @@ public class AuthService {
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
   }
 
-  private User assembleUser(UserEntity user) {
+  private UserDTO assembleUser(UserEntity user) {
     String firstName = null;
     String lastName = null;
     switch (user.getRole()) {
@@ -179,7 +173,7 @@ public class AuthService {
         lastName = profile.getLastname();
       }
     }
-    return new User(user.getId(), user.getEmail(), firstName, lastName, user.getRole());
+    return new UserDTO(user.getId(), user.getEmail(), firstName, lastName, user.getRole());
   }
 
   private long expiresInSeconds() {

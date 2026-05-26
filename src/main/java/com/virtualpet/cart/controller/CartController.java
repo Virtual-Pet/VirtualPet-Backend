@@ -1,8 +1,8 @@
 package com.virtualpet.cart.controller;
 
-import com.virtualpet.cart.dto.CartDTO.Cart;
-import com.virtualpet.cart.dto.CartDTO.CartItemQuantity;
-import com.virtualpet.cart.dto.CartDTO.UpdateQuantityRequest;
+import com.virtualpet.cart.dto.CartDTO.CartViewDTO;
+import com.virtualpet.cart.dto.CartDTO.CartItemQuantityDTO;
+import com.virtualpet.cart.dto.CartDTO.UpdateQuantityRequestDTO;
 import com.virtualpet.cart.service.CartService;
 import com.virtualpet.common.security.UserPrincipal;
 import jakarta.validation.Valid;
@@ -33,15 +33,15 @@ public class CartController {
   private final CartService cartService;
 
   @GetMapping
-  public Cart getCart(@AuthenticationPrincipal UserPrincipal currentUser) {
+  public CartViewDTO getCart(@AuthenticationPrincipal UserPrincipal currentUser) {
     return cartService.getCart(currentUser.getId());
   }
 
   @PutMapping("/items/{skuId}")
-  public CartItemQuantity putItem(
+  public CartItemQuantityDTO putItem(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @PathVariable UUID skuId,
-      @Valid @RequestBody UpdateQuantityRequest request) {
+      @Valid @RequestBody UpdateQuantityRequestDTO request) {
     return cartService.putItem(currentUser.getId(), skuId, request.quantity());
   }
 

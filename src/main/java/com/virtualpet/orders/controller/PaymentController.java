@@ -1,7 +1,7 @@
 package com.virtualpet.orders.controller;
 
 import com.virtualpet.common.security.UserPrincipal;
-import com.virtualpet.orders.dto.CheckoutDTO.PaymentResponse;
+import com.virtualpet.orders.dto.CheckoutDTO.PaymentResponseDTO;
 import com.virtualpet.orders.service.PaymentService;
 import com.virtualpet.orders.service.WebhookService;
 import java.util.Map;
@@ -28,7 +28,7 @@ public class PaymentController {
 
   @GetMapping("/{id}")
   @PreAuthorize("isAuthenticated()")
-  public PaymentResponse getPayment(
+  public PaymentResponseDTO getPayment(
       @AuthenticationPrincipal UserPrincipal currentUser, @PathVariable UUID id) {
     return paymentService.getPayment(id, currentUser.getId());
   }

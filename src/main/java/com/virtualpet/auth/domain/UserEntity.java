@@ -38,14 +38,6 @@ public class UserEntity implements UserDetails {
   @Builder.Default
   private Boolean active = true;
 
-  @Column(name = "email_verified", nullable = false)
-  @Builder.Default
-  private Boolean emailVerified = false;
-
-  @Column(name = "force_password_change", nullable = false)
-  @Builder.Default
-  private Boolean forcePasswordChange = false;
-
   @Column(name = "created_at", nullable = false, updatable = false)
   @Builder.Default
   private Instant createdAt = Instant.now();

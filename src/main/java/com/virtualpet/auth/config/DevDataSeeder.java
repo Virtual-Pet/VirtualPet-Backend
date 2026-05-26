@@ -35,7 +35,7 @@ public class DevDataSeeder implements ApplicationRunner {
   }
 
   private void seedAdmin() {
-    String email = "admin@virtualpet.local";
+    String email = "admin@virtualpet.com";
     if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
       return;
     }
@@ -46,22 +46,20 @@ public class DevDataSeeder implements ApplicationRunner {
                 .passwordHash(passwordEncoder.encode("admin1234"))
                 .role(UserRole.ROLE_ADMIN)
                 .active(true)
-                .emailVerified(true)
-                .forcePasswordChange(false)
                 .build());
     employeeRepository.save(
         EmployeeEntity.builder()
             .userId(user.getId())
             .name("Super")
             .lastname("Admin")
-            .legajo("ADM-0001")
+            .legajo("ADM-0000")
             .warehouseId(1)
             .build());
     log.info("Seeded admin {} / admin1234", email);
   }
 
   private void seedEmployee() {
-    String email = "staff@virtualpet.local";
+    String email = "staff@virtualpet.com";
     if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
       return;
     }
@@ -72,8 +70,6 @@ public class DevDataSeeder implements ApplicationRunner {
                 .passwordHash(passwordEncoder.encode("staff1234"))
                 .role(UserRole.ROLE_EMPLOYEE)
                 .active(true)
-                .emailVerified(true)
-                .forcePasswordChange(false)
                 .build());
     employeeRepository.save(
         EmployeeEntity.builder()
@@ -87,7 +83,7 @@ public class DevDataSeeder implements ApplicationRunner {
   }
 
   private void seedCustomer() {
-    String email = "cliente@demo.local";
+    String email = "cliente1234@gmail.com";
     if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
       return;
     }
@@ -98,8 +94,6 @@ public class DevDataSeeder implements ApplicationRunner {
                 .passwordHash(passwordEncoder.encode("cliente1234"))
                 .role(UserRole.ROLE_CUSTOMER)
                 .active(true)
-                .emailVerified(true)
-                .forcePasswordChange(false)
                 .build());
     customerRepository.save(
         CustomerEntity.builder().userId(user.getId()).name("Cliente").lastname("Demo").build());
