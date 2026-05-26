@@ -10,34 +10,37 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Gestiona el perfil de datos del cliente (tabla auth.customers).
+ * Solo conoce CustomerEntity — no sabe nada de UserEntity ni JWT.
+ * El acoplamiento con auth.users ocurre en CustomerOrchestrator.
+ */
 @Service
 @RequiredArgsConstructor
 public class CustomerProfileService {
 
-  private final CustomerRepository customerRepository;
+    private final CustomerRepository customerRepository;
 
-  @Transactional
-  public void createProfile(UUID userId, RegisterCustomerRequest request) {
-    CustomerEntity profile =
-        CustomerEntity.builder()
-            .userId(userId) // Soft reference (Relación lógica)
-            .name(request.name())
-            .lastname(request.lastname())
+    @Transactional
+    public void createProfile(UUID userId, RegisterCustomerRequest request) {
+        CustomerEntity profile = CustomerEntity.builder()
+            .userId(userId)
+            .name(request.name().trim())
+            .lastname(request.lastname().trim())
             .dni(request.dni())
             .phone(request.phone())
             .build();
 
-    customerRepository.save(profile);
-  }
+        customerRepository.save(profile);
+    }
 
-  @Transactional(readOnly = true)
-  public CustomerEntity getByUserId(UUID userId) {
-    return customerRepository
-        .findById(userId)
-        .orElseThrow(
-            () ->
-                new ApiException(
-                    HttpStatus.NOT_FOUND,
-                    "Perfil de cliente no encontrado para el identificador proporcionado"));
-  }
+    @Transactional(readOnly = true)
+    public CustomerEntity getByUserId(UUID userId) {
+        return customerRepository
+            .findById(userId)
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND,
+                "Perfil de cliente no encontrado."
+            ));
+    }
 }
