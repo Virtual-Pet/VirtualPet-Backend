@@ -2,8 +2,6 @@ package com.virtualpet.orders.domain;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import java.util.List;
-import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -28,37 +26,6 @@ public final class JsonAttributeConverters {
     @Override
     public Address convertToEntityAttribute(String dbData) {
       return dbData == null ? null : MAPPER.readValue(dbData, Address.class);
-    }
-  }
-
-  @Converter
-  public static class SessionTotalsJsonConverter
-      implements AttributeConverter<SessionTotals, String> {
-    @Override
-    public String convertToDatabaseColumn(SessionTotals attribute) {
-      return attribute == null ? null : MAPPER.writeValueAsString(attribute);
-    }
-
-    @Override
-    public SessionTotals convertToEntityAttribute(String dbData) {
-      return dbData == null ? null : MAPPER.readValue(dbData, SessionTotals.class);
-    }
-  }
-
-  @Converter
-  public static class SessionLineItemsJsonConverter
-      implements AttributeConverter<List<SessionLineItem>, String> {
-
-    private static final TypeReference<List<SessionLineItem>> TYPE = new TypeReference<>() {};
-
-    @Override
-    public String convertToDatabaseColumn(List<SessionLineItem> attribute) {
-      return attribute == null ? null : MAPPER.writeValueAsString(attribute);
-    }
-
-    @Override
-    public List<SessionLineItem> convertToEntityAttribute(String dbData) {
-      return dbData == null ? null : MAPPER.readValue(dbData, TYPE);
     }
   }
 }

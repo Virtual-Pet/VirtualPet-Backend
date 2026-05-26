@@ -50,12 +50,11 @@ class CartControllerTest {
 
   @BeforeEach
   void setup() throws Exception {
-    em.createNativeQuery("DELETE FROM logistics.shipment_status").executeUpdate();
-    em.createNativeQuery("DELETE FROM logistics.shipments").executeUpdate();
+    em.createNativeQuery("DELETE FROM shipments.shipment_status").executeUpdate();
+    em.createNativeQuery("DELETE FROM shipments.shipments").executeUpdate();
     em.createQuery("DELETE FROM PaymentEntity").executeUpdate();
     em.createQuery("DELETE FROM OrderItemEntity").executeUpdate();
     em.createQuery("DELETE FROM OrderEntity").executeUpdate();
-    em.createQuery("DELETE FROM CheckoutSessionEntity").executeUpdate();
     em.createQuery("DELETE FROM ProductVariantEntity").executeUpdate();
     em.createQuery("DELETE FROM ProductEntity").executeUpdate();
     em.createQuery("DELETE FROM CategoryEntity").executeUpdate();

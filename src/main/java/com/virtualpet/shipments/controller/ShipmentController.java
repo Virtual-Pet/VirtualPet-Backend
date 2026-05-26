@@ -3,9 +3,9 @@ package com.virtualpet.shipments.controller;
 import com.virtualpet.common.pagination.CursorPage;
 import com.virtualpet.common.security.UserPrincipal;
 import com.virtualpet.shipments.domain.ShipmentStatus;
-import com.virtualpet.shipments.dto.ShipmentDTO.AdvanceShipmentRequest;
-import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentResponse;
-import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentSummary;
+import com.virtualpet.shipments.dto.ShipmentDTO.AdvanceShipmentRequestDTO;
+import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentResponseDTO;
+import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentSummaryDTO;
 import com.virtualpet.shipments.service.ShipmentService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -33,7 +33,7 @@ public class ShipmentController {
   private final ShipmentService shipmentService;
 
   @GetMapping
-  public CursorPage<ShipmentSummary> list(
+  public CursorPage<ShipmentSummaryDTO> list(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @RequestParam(required = false, name = "user") String userFilter,
       @RequestParam(required = false) ShipmentStatus status,
@@ -45,17 +45,17 @@ public class ShipmentController {
   }
 
   @GetMapping("/{id}")
-  public ShipmentResponse get(
+  public ShipmentResponseDTO get(
       @AuthenticationPrincipal UserPrincipal currentUser, @PathVariable UUID id) {
     return shipmentService.getById(id, currentUser.getId(), isCustomer(currentUser));
   }
 
   @PatchMapping("/{id}")
   @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
-  public ShipmentResponse advance(
+  public ShipmentResponseDTO advance(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @PathVariable UUID id,
-      @Valid @RequestBody AdvanceShipmentRequest request) {
+      @Valid @RequestBody AdvanceShipmentRequestDTO request) {
     return shipmentService.advance(id, request.status(), currentUser.getId());
   }
 

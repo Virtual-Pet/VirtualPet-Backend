@@ -19,7 +19,7 @@ public final class CheckoutDTO {
   private CheckoutDTO() {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record CheckoutSessionResponse(
+  public record CheckoutSessionResponseDTO(
       UUID checkoutSessionId,
       SessionStatus status,
       List<SessionLineItem> lineItems,
@@ -28,7 +28,7 @@ public final class CheckoutDTO {
       Address shippingAddress,
       Instant expiresAt) {}
 
-  public record SetShippingAddressRequest(
+  public record SetShippingAddressRequestDTO(
       @Valid @NotBlank String addressLine,
       @NotBlank String city,
       String state,
@@ -40,7 +40,7 @@ public final class CheckoutDTO {
     }
   }
 
-  public record PaymentIntentResponse(
+  public record PaymentIntentResponseDTO(
       UUID paymentId,
       String provider,
       String providerPaymentId,
@@ -49,7 +49,7 @@ public final class CheckoutDTO {
       String currency,
       PaymentStatus status) {}
 
-  public record PaymentResponse(
+  public record PaymentResponseDTO(
       UUID paymentId,
       String provider,
       String providerPaymentId,
@@ -58,5 +58,5 @@ public final class CheckoutDTO {
       String currency,
       UUID orderId) {}
 
-  public record OrderConfirmationResponse(UUID orderId, UUID shipmentId, String status) {}
+  public record OrderConfirmationResponseDTO(UUID orderId, UUID shipmentId, String status) {}
 }

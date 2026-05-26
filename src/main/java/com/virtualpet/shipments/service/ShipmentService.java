@@ -9,9 +9,9 @@ import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.shipments.domain.ShipmentEntity;
 import com.virtualpet.shipments.domain.ShipmentStatus;
 import com.virtualpet.shipments.domain.ShipmentStatusHistoryEntity;
-import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentResponse;
-import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentStatusEvent;
-import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentSummary;
+import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentResponseDTO;
+import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentStatusEventDTO;
+import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentSummaryDTO;
 import com.virtualpet.shipments.repository.ShipmentRepository;
 import com.virtualpet.shipments.repository.ShipmentStatusHistoryRepository;
 import com.virtualpet.shipments.spec.ShipmentSpecifications;
@@ -62,7 +62,7 @@ public class ShipmentService {
   /* ---------- List ---------- */
 
   @Transactional(readOnly = true)
-  public CursorPage<ShipmentSummary> list(
+  public CursorPage<ShipmentSummaryDTO> list(
       UUID callerId,
       boolean isCustomer,
       boolean userIsMe,
@@ -92,11 +92,11 @@ public class ShipmentService {
       rows = rows.subList(0, effectiveLimit);
     }
 
-    List<ShipmentSummary> data =
+    List<ShipmentSummaryDTO> data =
         rows.stream()
             .map(
                 s ->
-                    new ShipmentSummary(
+                    new ShipmentSummaryDTO(
                         s.getId(),
                         s.getOrderId(),
                         s.getStatus(),
@@ -113,18 +113,18 @@ public class ShipmentService {
   /* ---------- Detail ---------- */
 
   @Transactional(readOnly = true)
-  public ShipmentResponse getById(UUID id, UUID callerId, boolean isCustomer) {
+  public ShipmentResponseDTO getById(UUID id, UUID callerId, boolean isCustomer) {
     ShipmentEntity shipment = loadAccessible(id, callerId, isCustomer);
     OrderEntity order =
         orderRepository
             .findById(shipment.getOrderId())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shipment not found"));
-    List<ShipmentStatusEvent> history =
+    List<ShipmentStatusEventDTO> history =
         historyRepository.findByShipmentIdOrderByCreatedAtAsc(shipment.getId()).stream()
-            .map(h -> new ShipmentStatusEvent(parseStatus(h.getNewStatus()), h.getCreatedAt()))
+            .map(h -> new ShipmentStatusEventDTO(parseStatus(h.getNewStatus()), h.getCreatedAt()))
             .filter(e -> e.status() != null)
             .toList();
-    return new ShipmentResponse(
+    return new ShipmentResponseDTO(
         shipment.getId(),
         shipment.getOrderId(),
         shipment.getStatus(),
@@ -135,7 +135,7 @@ public class ShipmentService {
   /* ---------- Advance ---------- */
 
   @Transactional
-  public ShipmentResponse advance(UUID id, ShipmentStatus target, UUID operatorId) {
+  public ShipmentResponseDTO advance(UUID id, ShipmentStatus target, UUID operatorId) {
     if (!ADVANCE_TARGETS.contains(target)) {
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_CONTENT, "Allowed transitions: PREPARED, IN_TRANSIT, DELIVERED");
@@ -172,14 +172,14 @@ public class ShipmentService {
 
   /* ---------- Internals ---------- */
 
-  private ShipmentResponse getByIdInternal(ShipmentEntity shipment) {
+  private ShipmentResponseDTO getByIdInternal(ShipmentEntity shipment) {
     OrderEntity order = orderRepository.findById(shipment.getOrderId()).orElse(null);
-    List<ShipmentStatusEvent> history =
+    List<ShipmentStatusEventDTO> history =
         historyRepository.findByShipmentIdOrderByCreatedAtAsc(shipment.getId()).stream()
-            .map(h -> new ShipmentStatusEvent(parseStatus(h.getNewStatus()), h.getCreatedAt()))
+            .map(h -> new ShipmentStatusEventDTO(parseStatus(h.getNewStatus()), h.getCreatedAt()))
             .filter(e -> e.status() != null)
             .toList();
-    return new ShipmentResponse(
+    return new ShipmentResponseDTO(
         shipment.getId(),
         shipment.getOrderId(),
         shipment.getStatus(),

@@ -5,14 +5,14 @@ import com.virtualpet.catalog.domain.ProductVariantEntity;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.catalog.service.InventoryService;
 import com.virtualpet.common.exception.ApiException;
-import com.virtualpet.orders.domain.CheckoutSessionEntity;
+import com.virtualpet.orders.domain.CheckoutSession;
 import com.virtualpet.orders.domain.OrderEntity;
 import com.virtualpet.orders.domain.OrderItemEntity;
 import com.virtualpet.orders.domain.OrderStatus;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.SessionLineItem;
 import com.virtualpet.orders.domain.SessionStatus;
-import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponse;
+import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponseDTO;
 import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.orders.repository.PaymentRepository;
 import com.virtualpet.shipments.domain.ShipmentEntity;
@@ -51,14 +51,14 @@ public class ConfirmOrchestrator {
   private final ShipmentService shipmentService;
 
   @Transactional
-  public OrderConfirmationResponse confirmPaidSession(
-      CheckoutSessionEntity session, PaymentEntity payment) {
+  public OrderConfirmationResponseDTO confirmPaidSession(
+      CheckoutSession session, PaymentEntity payment) {
     var existing = orderRepository.findBySessionId(session.getId());
     if (existing.isPresent()) {
       OrderEntity order = existing.get();
       UUID shipmentId =
           shipmentRepository.findByOrderId(order.getId()).map(ShipmentEntity::getId).orElse(null);
-      return new OrderConfirmationResponse(order.getId(), shipmentId, order.getStatus().name());
+      return new OrderConfirmationResponseDTO(order.getId(), shipmentId, order.getStatus().name());
     }
 
     if (session.getShippingAddress() == null) {
@@ -122,7 +122,7 @@ public class ConfirmOrchestrator {
         savedOrder.getId(),
         savedShipment.getId(),
         session.getId());
-    return new OrderConfirmationResponse(
+    return new OrderConfirmationResponseDTO(
         savedOrder.getId(), savedShipment.getId(), savedOrder.getStatus().name());
   }
 

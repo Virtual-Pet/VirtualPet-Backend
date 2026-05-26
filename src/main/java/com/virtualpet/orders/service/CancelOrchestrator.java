@@ -7,9 +7,9 @@ import com.virtualpet.orders.domain.OrderItemEntity;
 import com.virtualpet.orders.domain.OrderStatus;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.PaymentStatus;
-import com.virtualpet.orders.dto.OrderDTO.OrderCancellation;
-import com.virtualpet.orders.dto.OrderDTO.OrderShipmentRef;
-import com.virtualpet.orders.dto.OrderDTO.RefundSummary;
+import com.virtualpet.orders.dto.OrderDTO.OrderCancellationDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderShipmentRefDTO;
+import com.virtualpet.orders.dto.OrderDTO.RefundSummaryDTO;
 import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.orders.repository.PaymentRepository;
 import com.virtualpet.shipments.domain.ShipmentEntity;
@@ -46,7 +46,7 @@ public class CancelOrchestrator {
   private final ShipmentService shipmentService;
 
   @Transactional
-  public OrderCancellation cancel(OrderEntity order, String reason) {
+  public OrderCancellationDTO cancel(OrderEntity order, String reason) {
     if (order.getStatus() == OrderStatus.CANCELLED) {
       return assembleResponse(order);
     }
@@ -85,13 +85,13 @@ public class CancelOrchestrator {
 
     PaymentEntity refundedPayment = initiateRefund(order.getId());
 
-    return new OrderCancellation(
+    return new OrderCancellationDTO(
         order.getId(),
         OrderStatus.CANCELLED,
-        new OrderShipmentRef(shipment.getId(), shipment.getStatus()),
+        new OrderShipmentRefDTO(shipment.getId(), shipment.getStatus()),
         refundedPayment == null
             ? null
-            : new RefundSummary(refundedPayment.getId(), refundedPayment.getStatus()));
+            : new RefundSummaryDTO(refundedPayment.getId(), refundedPayment.getStatus()));
   }
 
   private PaymentEntity initiateRefund(UUID orderId) {
@@ -118,17 +118,17 @@ public class CancelOrchestrator {
     return payment;
   }
 
-  private OrderCancellation assembleResponse(OrderEntity order) {
-    OrderShipmentRef shipmentRef =
+  private OrderCancellationDTO assembleResponse(OrderEntity order) {
+    OrderShipmentRefDTO shipmentRef =
         shipmentRepository
             .findByOrderId(order.getId())
-            .map(s -> new OrderShipmentRef(s.getId(), s.getStatus()))
+            .map(s -> new OrderShipmentRefDTO(s.getId(), s.getStatus()))
             .orElse(null);
-    RefundSummary refund =
+    RefundSummaryDTO refund =
         paymentRepository
             .findByOrderId(order.getId())
-            .map(p -> new RefundSummary(p.getId(), p.getStatus()))
+            .map(p -> new RefundSummaryDTO(p.getId(), p.getStatus()))
             .orElse(null);
-    return new OrderCancellation(order.getId(), order.getStatus(), shipmentRef, refund);
+    return new OrderCancellationDTO(order.getId(), order.getStatus(), shipmentRef, refund);
   }
 }

@@ -2,9 +2,9 @@ package com.virtualpet.catalog.service;
 
 import com.virtualpet.catalog.domain.ProductEntity;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
-import com.virtualpet.catalog.dto.CatalogDtos.Product;
-import com.virtualpet.catalog.dto.CatalogDtos.ProductSummary;
-import com.virtualpet.catalog.dto.CatalogDtos.Sku;
+import com.virtualpet.catalog.dto.CatalogDTO.ProductDTO;
+import com.virtualpet.catalog.dto.CatalogDTO.ProductSummaryDTO;
+import com.virtualpet.catalog.dto.CatalogDTO.SkuDTO;
 import com.virtualpet.catalog.repository.ProductRepository;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.catalog.spec.ProductSpecifications;
@@ -45,7 +45,7 @@ public class CatalogService {
   private final ObjectMapper objectMapper;
 
   @Transactional(readOnly = true)
-  public CursorPage<ProductSummary> list(
+  public CursorPage<ProductSummaryDTO> list(
       String q,
       String category,
       String petType,
@@ -78,7 +78,7 @@ public class CatalogService {
     }
 
     Map<UUID, List<ProductVariantEntity>> variantsByProduct = loadVariantsByProductId(rows);
-    List<ProductSummary> data =
+    List<ProductSummaryDTO> data =
         rows.stream()
             .map(p -> toSummary(p, variantsByProduct.getOrDefault(p.getId(), List.of())))
             .toList();
@@ -98,7 +98,7 @@ public class CatalogService {
   }
 
   @Transactional(readOnly = true)
-  public Product getById(UUID id) {
+  public ProductDTO getById(UUID id) {
     ProductEntity product =
         productRepository
             .findByIdWithVariantsAndCategory(id)
@@ -122,7 +122,7 @@ public class CatalogService {
         .collect(Collectors.groupingBy(v -> v.getProduct().getId()));
   }
 
-  private ProductSummary toSummary(ProductEntity product, List<ProductVariantEntity> variants) {
+  private ProductSummaryDTO toSummary(ProductEntity product, List<ProductVariantEntity> variants) {
     BigDecimal basePrice =
         variants.stream()
             .map(ProductVariantEntity::getPrice)
@@ -134,7 +134,7 @@ public class CatalogService {
             .filter(url -> url != null && !url.isBlank())
             .findFirst()
             .orElse(null);
-    return new ProductSummary(
+    return new ProductSummaryDTO(
         product.getId(),
         product.getName(),
         product.getCategory() == null ? null : product.getCategory().getName(),
@@ -143,16 +143,16 @@ public class CatalogService {
         thumbnail);
   }
 
-  private Product toDetail(ProductEntity product) {
+  private ProductDTO toDetail(ProductEntity product) {
     List<ProductVariantEntity> variants = product.getVariants();
-    List<Sku> skus = variants.stream().map(this::toSku).toList();
+    List<SkuDTO> skus = variants.stream().map(this::toSku).toList();
     List<String> images =
         variants.stream()
             .map(ProductVariantEntity::getImageUrl)
             .filter(url -> url != null && !url.isBlank())
             .distinct()
             .toList();
-    return new Product(
+    return new ProductDTO(
         product.getId(),
         product.getName(),
         product.getDescription(),
@@ -162,8 +162,8 @@ public class CatalogService {
         skus);
   }
 
-  private Sku toSku(ProductVariantEntity variant) {
-    return new Sku(
+  private SkuDTO toSku(ProductVariantEntity variant) {
+    return new SkuDTO(
         variant.getId(),
         parseAttributes(variant.getAttributes()),
         variant.getPrice(),

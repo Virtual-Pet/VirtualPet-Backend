@@ -13,6 +13,8 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(schema = "catalog", name = "product_variants")
@@ -31,7 +33,8 @@ public class ProductVariantEntity {
   @Column(nullable = false, unique = true)
   private String sku;
 
-  @Column(nullable = false)
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(nullable = false, columnDefinition = "jsonb")
   private String attributes = "{}";
 
   @Column(nullable = false)

@@ -206,48 +206,6 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '422': { $ref: '#/components/responses/ValidationError' }
 
-  /auth/password/forgot:
-    post:
-      tags: [auth]
-      summary: Iniciar recuperación de contraseña
-      description: Envía un token de un solo uso por email. Responde igual exista o no el email.
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email: { type: string, format: email }
-      responses:
-        '202': { description: Solicitud aceptada (no revela si el email existe) }
-        '422': { $ref: '#/components/responses/ValidationError' }
-        '429': { $ref: '#/components/responses/TooManyRequests' }
-
-  /auth/password/reset:
-    post:
-      tags: [auth]
-      summary: Completar recuperación de contraseña
-      description: Valida el token de un solo uso, guarda el nuevo hash e invalida sesiones.
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [token, newPassword]
-              properties:
-                token: { type: string }
-                newPassword: { type: string, format: password }
-      responses:
-        '204': { description: Contraseña actualizada }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-        '429': { $ref: '#/components/responses/TooManyRequests' }
-
   /auth/password/change:
     post:
       tags: [auth]

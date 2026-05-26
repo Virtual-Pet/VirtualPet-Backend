@@ -6,25 +6,31 @@ CREATE SCHEMA IF NOT EXISTS orders;
 
 -- =============================================================================
 -- TABLE: orders
+--    La sesión de checkout es efímera y vive en Redis con TTL; sólo la order
+--    confirmada se persiste acá. session_id queda como UUID de trazabilidad
+--    (sin FK) — la sesión Redis pudo expirar antes de la confirmación.
+--    Una sesión confirmada produce exactamente una order (uq_orders_session_id).
 -- =============================================================================
 CREATE TABLE orders.orders (
        id                  UUID            DEFAULT gen_random_uuid(),
        user_id             UUID            NOT NULL,
+       session_id          UUID            ,
        warehouse_id        INT             ,
-       contact_name        VARCHAR(50)     NOT NULL,
-       contact_lastname    VARCHAR(50)     NOT NULL,
-       contact_email       VARCHAR(255)    NOT NULL,
-       contact_phone       VARCHAR(30)     NOT NULL,
-       status              VARCHAR(50)     NOT NULL DEFAULT 'PENDING_PAYMENT',
+       contact_name        VARCHAR(50)     ,
+       contact_lastname    VARCHAR(50)     ,
+       contact_email       VARCHAR(255)    ,
+       contact_phone       VARCHAR(30)     ,
+       status              VARCHAR(50)     NOT NULL,
        total               NUMERIC(10,2)   NOT NULL,
-       shipping_address    JSONB           NOT NULL,
+       shipping_address    TEXT            NOT NULL,
        shipping_attempts   SMALLINT        NOT NULL DEFAULT 0,
        version             BIGINT          NOT NULL DEFAULT 0,
        created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
        updated_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
        CONSTRAINT pk_orders PRIMARY KEY (id),
-       CONSTRAINT chk_order_status CHECK (status IN ('PENDING_PAYMENT', 'PAID', 'IN_PREPARATION', 'PREPARED', 'SHIPPED', 'DELIVERED', 'SHIPPING_FAILED', 'CANCELED')),
+       CONSTRAINT uq_orders_session_id UNIQUE (session_id),
+       CONSTRAINT chk_order_status CHECK (status IN ('CONFIRMED','CANCELLED')),
        CONSTRAINT chk_order_total CHECK (total >= 0),
        CONSTRAINT chk_max_attempts CHECK (shipping_attempts BETWEEN 0 AND 3)
 );
@@ -67,22 +73,28 @@ CREATE TABLE orders.order_items (
 
 -- =============================================================================
 -- TABLE: payments
+--    Un payment puede existir antes de la order (se crea desde la sesión).
+--    session_id es la fuente de verdad del vínculo; order_id se completa al
+--    confirmar.
 -- =============================================================================
 CREATE TABLE orders.payments (
-         id                  UUID            DEFAULT gen_random_uuid(),
-         order_id            UUID            NOT NULL,
-         gateway             VARCHAR(50)     NOT NULL,
-         external_reference  VARCHAR(255)    ,
-         amount              NUMERIC(10,2)   NOT NULL,
-         status              VARCHAR(30)     NOT NULL DEFAULT 'PENDING',
-         idempotency_key     VARCHAR(255)    NOT NULL,
-         created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+         id                   UUID            DEFAULT gen_random_uuid(),
+         session_id           UUID            ,
+         order_id             UUID            ,
+         user_id              UUID            ,
+         provider             VARCHAR(50)     NOT NULL,
+         provider_payment_id  VARCHAR(255)    ,
+         amount               NUMERIC(10,2)   NOT NULL,
+         currency             VARCHAR(3)      NOT NULL DEFAULT 'ARS',
+         status               VARCHAR(30)     NOT NULL DEFAULT 'PENDING',
+         idempotency_key      VARCHAR(255)    ,
+         created_at           TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
          CONSTRAINT pk_payments PRIMARY KEY (id),
          CONSTRAINT fk_payment_order FOREIGN KEY (order_id) REFERENCES orders.orders(id) ON DELETE RESTRICT,
-         CONSTRAINT chk_gateway CHECK (gateway IN ('MOCK', 'MERCADOPAGO', 'STRIPE', 'DECIDIR')),
+         CONSTRAINT chk_payment_provider CHECK (provider IN ('fake','mock','mercadopago','stripe','decidir')),
          CONSTRAINT chk_payment_amount CHECK (amount > 0),
-         CONSTRAINT chk_payment_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'REFUNDED')),
+         CONSTRAINT chk_payment_status CHECK (status IN ('PENDING','PROCESSING','PAID','FAILED','REFUNDED')),
          CONSTRAINT uq_payment_idempotency UNIQUE (idempotency_key)
 );
 
@@ -103,11 +115,15 @@ CREATE TABLE orders.payment_status_history (
 -- =============================================================================
 -- ÍNDICES
 -- =============================================================================
-CREATE INDEX idx_orders_user_id ON orders.orders (user_id);
-CREATE INDEX idx_orders_status ON orders.orders (status);
+CREATE INDEX idx_orders_user_id    ON orders.orders (user_id);
+CREATE INDEX idx_orders_status     ON orders.orders (status);
 CREATE INDEX idx_orders_created_at ON orders.orders (created_at DESC);
-CREATE INDEX idx_items_order_id ON orders.order_items (order_id);
-CREATE INDEX idx_payments_order_id ON orders.payments (order_id);
 
-CREATE INDEX idx_order_history_id ON orders.order_status_history (order_id);
+CREATE INDEX idx_items_order_id ON orders.order_items (order_id);
+
+CREATE INDEX idx_payments_order_id              ON orders.payments (order_id);
+CREATE INDEX idx_payments_session_id            ON orders.payments (session_id);
+CREATE INDEX idx_payments_provider_payment_id   ON orders.payments (provider_payment_id);
+
+CREATE INDEX idx_order_history_id   ON orders.order_status_history (order_id);
 CREATE INDEX idx_payment_history_id ON orders.payment_status_history (payment_id);

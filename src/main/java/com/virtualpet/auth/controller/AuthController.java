@@ -1,20 +1,17 @@
 package com.virtualpet.auth.controller;
 
-import com.virtualpet.auth.dto.AuthDTO.AuthTokens;
-import com.virtualpet.auth.dto.AuthDTO.ChangePasswordRequest;
-import com.virtualpet.auth.dto.AuthDTO.ForgotPasswordRequest;
-import com.virtualpet.auth.dto.AuthDTO.LoginRequest;
-import com.virtualpet.auth.dto.AuthDTO.LogoutRequest;
-import com.virtualpet.auth.dto.AuthDTO.RefreshRequest;
-import com.virtualpet.auth.dto.AuthDTO.RefreshResponse;
-import com.virtualpet.auth.dto.AuthDTO.RegisterCustomerRequest;
-import com.virtualpet.auth.dto.AuthDTO.RegisterEmployeeRequest;
-import com.virtualpet.auth.dto.AuthDTO.ResetPasswordRequest;
-import com.virtualpet.auth.dto.AuthDTO.UpdateMeRequest;
-import com.virtualpet.auth.dto.AuthDTO.User;
-import com.virtualpet.auth.dto.AuthDTO.UserSummary;
+import com.virtualpet.auth.dto.AuthDTO.AuthTokensDTO;
+import com.virtualpet.auth.dto.AuthDTO.ChangePasswordRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.LoginRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.LogoutRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.RefreshRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.RefreshResponseDTO;
+import com.virtualpet.auth.dto.AuthDTO.RegisterCustomerRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.RegisterEmployeeRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.UpdateMeRequestDTO;
+import com.virtualpet.auth.dto.AuthDTO.UserDTO;
+import com.virtualpet.auth.dto.AuthDTO.UserSummaryDTO;
 import com.virtualpet.auth.service.AuthService;
-import com.virtualpet.auth.service.PasswordResetService;
 import com.virtualpet.common.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,23 +33,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthService authService;
-  private final PasswordResetService passwordResetService;
 
   /* ---------- Session ---------- */
 
   @PostMapping("/login")
-  public ResponseEntity<AuthTokens> login(@Valid @RequestBody LoginRequest request) {
+  public ResponseEntity<AuthTokensDTO> login(@Valid @RequestBody LoginRequestDTO request) {
     return ResponseEntity.ok(this.authService.login(request));
   }
 
   @PostMapping("/logout")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void logout(@Valid @RequestBody LogoutRequest request) {
+  public void logout(@Valid @RequestBody LogoutRequestDTO request) {
     authService.logout(request.refreshToken());
   }
 
   @PostMapping("/refresh")
-  public ResponseEntity<RefreshResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+  public ResponseEntity<RefreshResponseDTO> refresh(@Valid @RequestBody RefreshRequestDTO request) {
     return ResponseEntity.ok(authService.refresh(request.refreshToken()));
   }
 
@@ -60,50 +56,38 @@ public class AuthController {
 
   @PostMapping("/register/customer")
   @ResponseStatus(HttpStatus.CREATED)
-  public UserSummary registerCustomer(@Valid @RequestBody RegisterCustomerRequest request) {
+  public UserSummaryDTO registerCustomer(@Valid @RequestBody RegisterCustomerRequestDTO request) {
     return authService.registerCustomer(request);
   }
 
   @PostMapping("/register/employee")
   @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.CREATED)
-  public UserSummary registerEmployee(@Valid @RequestBody RegisterEmployeeRequest request) {
+  public UserSummaryDTO registerEmployee(@Valid @RequestBody RegisterEmployeeRequestDTO request) {
     return authService.registerEmployee(request);
   }
 
   /* ---------- Profile ---------- */
 
   @GetMapping("/me")
-  public User getMe(@AuthenticationPrincipal UserPrincipal currentUser) {
+  public UserDTO getMe(@AuthenticationPrincipal UserPrincipal currentUser) {
     return authService.getMe(currentUser.getId());
   }
 
   @PatchMapping("/me")
-  public User updateMe(
+  public UserDTO updateMe(
       @AuthenticationPrincipal UserPrincipal currentUser,
-      @Valid @RequestBody UpdateMeRequest request) {
+      @Valid @RequestBody UpdateMeRequestDTO request) {
     return authService.updateMe(currentUser.getId(), request);
   }
 
   /* ---------- Passwords ---------- */
 
-  @PostMapping("/password/forgot")
-  @ResponseStatus(HttpStatus.ACCEPTED)
-  public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-    passwordResetService.requestReset(request);
-  }
-
-  @PostMapping("/password/reset")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-    passwordResetService.resetPassword(request);
-  }
-
   @PostMapping("/password/change")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void changePassword(
       @AuthenticationPrincipal UserPrincipal currentUser,
-      @Valid @RequestBody ChangePasswordRequest request) {
+      @Valid @RequestBody ChangePasswordRequestDTO request) {
     authService.changePassword(currentUser.getId(), request);
   }
 }

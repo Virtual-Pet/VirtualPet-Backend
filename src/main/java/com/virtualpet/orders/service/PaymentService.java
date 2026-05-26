@@ -3,13 +3,13 @@ package com.virtualpet.orders.service;
 import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.common.idempotency.IdempotencyKeyService;
-import com.virtualpet.orders.domain.CheckoutSessionEntity;
+import com.virtualpet.orders.domain.CheckoutSession;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.PaymentStatus;
 import com.virtualpet.orders.domain.SessionStatus;
-import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponse;
-import com.virtualpet.orders.dto.CheckoutDTO.PaymentIntentResponse;
-import com.virtualpet.orders.dto.CheckoutDTO.PaymentResponse;
+import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.PaymentIntentResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.PaymentResponseDTO;
 import com.virtualpet.orders.repository.PaymentRepository;
 import java.time.Duration;
 import java.util.UUID;
@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PaymentService {
 
-  public record ConfirmOutcome(HttpStatus status, OrderConfirmationResponse body) {}
+  public record ConfirmOutcome(HttpStatus status, OrderConfirmationResponseDTO body) {}
 
   private static final Duration IDEMPOTENCY_TTL = Duration.ofHours(24);
 
@@ -38,18 +38,18 @@ public class PaymentService {
   /* -------- Create payment intent -------- */
 
   @Transactional
-  public PaymentIntentResponse createIntent(UUID sessionId, UUID userId, String idempotencyKey) {
+  public PaymentIntentResponseDTO createIntent(UUID sessionId, UUID userId, String idempotencyKey) {
     return idempotencyKeys.executeOnce(
         "payment-intent",
         idempotencyKey,
         IDEMPOTENCY_TTL,
-        PaymentIntentResponse.class,
+        PaymentIntentResponseDTO.class,
         () -> createIntentInternal(sessionId, userId, idempotencyKey));
   }
 
-  private PaymentIntentResponse createIntentInternal(
+  private PaymentIntentResponseDTO createIntentInternal(
       UUID sessionId, UUID userId, String idempotencyKey) {
-    CheckoutSessionEntity session = sessionService.loadOwned(sessionId, userId);
+    CheckoutSession session = sessionService.loadOwned(sessionId, userId);
     if (session.getStatus() != SessionStatus.PENDING
         && session.getStatus() != SessionStatus.AWAITING_PAYMENT) {
       throw new ApiException(
@@ -93,7 +93,7 @@ public class PaymentService {
         savedPayment.getId(),
         session.getId(),
         providerPaymentId);
-    return new PaymentIntentResponse(
+    return new PaymentIntentResponseDTO(
         savedPayment.getId(),
         savedPayment.getProvider(),
         savedPayment.getProviderPaymentId(),
@@ -116,7 +116,7 @@ public class PaymentService {
   }
 
   private ConfirmOutcome confirmInternal(UUID sessionId, UUID userId) {
-    CheckoutSessionEntity session = sessionService.loadOwned(sessionId, userId);
+    CheckoutSession session = sessionService.loadOwned(sessionId, userId);
     PaymentEntity payment =
         paymentRepository
             .findBySessionId(sessionId)
@@ -125,7 +125,7 @@ public class PaymentService {
 
     return switch (payment.getStatus()) {
       case PAID -> {
-        OrderConfirmationResponse body = confirmOrchestrator.confirmPaidSession(session, payment);
+        OrderConfirmationResponseDTO body = confirmOrchestrator.confirmPaidSession(session, payment);
         yield new ConfirmOutcome(HttpStatus.CREATED, body);
       }
       case FAILED -> new ConfirmOutcome(HttpStatus.PAYMENT_REQUIRED, null);
@@ -137,7 +137,7 @@ public class PaymentService {
   /* -------- Read a payment -------- */
 
   @Transactional(readOnly = true)
-  public PaymentResponse getPayment(UUID paymentId, UUID userId) {
+  public PaymentResponseDTO getPayment(UUID paymentId, UUID userId) {
     PaymentEntity payment =
         paymentRepository
             .findById(paymentId)
@@ -145,7 +145,7 @@ public class PaymentService {
     if (payment.getUserId() != null && !payment.getUserId().equals(userId)) {
       throw new ApiException(HttpStatus.FORBIDDEN, "Payment does not belong to this user");
     }
-    return new PaymentResponse(
+    return new PaymentResponseDTO(
         payment.getId(),
         payment.getProvider(),
         payment.getProviderPaymentId(),

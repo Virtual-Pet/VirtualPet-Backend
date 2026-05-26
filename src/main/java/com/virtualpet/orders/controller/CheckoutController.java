@@ -1,10 +1,10 @@
 package com.virtualpet.orders.controller;
 
 import com.virtualpet.common.security.UserPrincipal;
-import com.virtualpet.orders.dto.CheckoutDTO.CheckoutSessionResponse;
-import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponse;
-import com.virtualpet.orders.dto.CheckoutDTO.PaymentIntentResponse;
-import com.virtualpet.orders.dto.CheckoutDTO.SetShippingAddressRequest;
+import com.virtualpet.orders.dto.CheckoutDTO.CheckoutSessionResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.PaymentIntentResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.SetShippingAddressRequestDTO;
 import com.virtualpet.orders.service.CheckoutSessionService;
 import com.virtualpet.orders.service.CheckoutSessionService.StartResult;
 import com.virtualpet.orders.service.PaymentService;
@@ -36,7 +36,7 @@ public class CheckoutController {
   private final PaymentService paymentService;
 
   @PostMapping("/cart/checkout")
-  public ResponseEntity<CheckoutSessionResponse> startCheckout(
+  public ResponseEntity<CheckoutSessionResponseDTO> startCheckout(
       @AuthenticationPrincipal UserPrincipal currentUser) {
     StartResult result = sessionService.startCheckout(currentUser.getId());
     HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
@@ -44,22 +44,22 @@ public class CheckoutController {
   }
 
   @GetMapping("/checkout/sessions/{id}")
-  public CheckoutSessionResponse getSession(
+  public CheckoutSessionResponseDTO getSession(
       @AuthenticationPrincipal UserPrincipal currentUser, @PathVariable UUID id) {
     return sessionService.getSession(id, currentUser.getId());
   }
 
   @PutMapping("/checkout/sessions/{id}/shipping-address")
-  public CheckoutSessionResponse setShippingAddress(
+  public CheckoutSessionResponseDTO setShippingAddress(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @PathVariable UUID id,
-      @Valid @RequestBody SetShippingAddressRequest request) {
+      @Valid @RequestBody SetShippingAddressRequestDTO request) {
     return sessionService.setShippingAddress(id, currentUser.getId(), request);
   }
 
   @PostMapping("/checkout/sessions/{id}/payment-intents")
   @org.springframework.web.bind.annotation.ResponseStatus(HttpStatus.CREATED)
-  public PaymentIntentResponse createIntent(
+  public PaymentIntentResponseDTO createIntent(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @PathVariable UUID id,
       @RequestHeader("Idempotency-Key") String idempotencyKey) {
@@ -67,7 +67,7 @@ public class CheckoutController {
   }
 
   @PostMapping("/checkout/sessions/{id}/confirm")
-  public ResponseEntity<OrderConfirmationResponse> confirm(
+  public ResponseEntity<OrderConfirmationResponseDTO> confirm(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @PathVariable UUID id,
       @RequestHeader("Idempotency-Key") String idempotencyKey) {

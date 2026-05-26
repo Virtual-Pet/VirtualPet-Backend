@@ -13,13 +13,13 @@ public final class CartDTO {
 
   private CartDTO() {}
 
-  public record UpdateQuantityRequest(@NotNull @Min(1) Integer quantity) {}
+  public record UpdateQuantityRequestDTO(@NotNull @Min(1) Integer quantity) {}
 
-  public record CartItem(UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {}
+  public record CartItemDTO(UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {}
 
-  public record Totals(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
+  public record TotalsDTO(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
 
-  public record Cart(List<CartItem> items, Totals totals, String currency) {}
+  public record CartViewDTO(List<CartItemDTO> items, TotalsDTO totals, String currency) {}
 
-  public record CartItemQuantity(UUID skuId, int quantity) {}
+  public record CartItemQuantityDTO(UUID skuId, int quantity) {}
 }
