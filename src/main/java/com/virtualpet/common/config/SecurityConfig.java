@@ -1,6 +1,7 @@
 package com.virtualpet.common.config;
 
 import com.virtualpet.common.security.JwtAuthenticationFilter;
+import com.virtualpet.common.security.ForcePasswordChangeFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final ForcePasswordChangeFilter forcePasswordChangeFilter;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -43,9 +45,10 @@ public class SecurityConfig {
                     .requestMatchers(
                         HttpMethod.POST,
                         "/api/v1/customers/register",
-                        "/api/v1/auth/login",
-                        "/api/v1/auth/forgot-password",
-                        "/api/v1/auth/reset-password")
+                        "/api/v1/auth/**",
+                        "/api/v1/backoffice/auth/login",
+                        "/api/v1/customers/register",
+                        "/api/v1/customers/login")
                     .permitAll()
                     .requestMatchers(
                         HttpMethod.GET,
@@ -59,8 +62,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/cart/**")
                     .permitAll()
-                    .requestMatchers("/api/v1/backoffice/**")
-                    .hasRole("EMPLOYEE")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/backoffice/auth/me")
+                    .hasAnyRole("EMPLOYEE", "ADMIN")
                     .requestMatchers(HttpMethod.POST, "/api/v1/checkout")
                     .hasRole("CUSTOMER")
                     .requestMatchers(HttpMethod.GET, "/api/v1/orders", "/api/v1/orders/{id}")
@@ -69,7 +72,8 @@ public class SecurityConfig {
                     .hasAnyRole("CUSTOMER", "EMPLOYEE")
                     .anyRequest()
                     .authenticated())
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterAfter(forcePasswordChangeFilter, JwtAuthenticationFilter.class);
     return http.build();
   }
 

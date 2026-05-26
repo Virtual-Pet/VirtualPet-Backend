@@ -33,7 +33,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         UUID id = UUID.fromString(claims.getSubject());
         String email = claims.get("email", String.class);
         String role = claims.get("role", String.class);
-        UserPrincipal principal = new UserPrincipal(id, email, "", role);
+        Boolean force = claims.get("forcePasswordChange", Boolean.class);
+        boolean forcePasswordChange = force != null ? force : false;
+        UserPrincipal principal = new UserPrincipal(id, email, "", role, forcePasswordChange);
         UsernamePasswordAuthenticationToken auth =
             new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
