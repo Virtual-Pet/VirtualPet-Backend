@@ -12,15 +12,14 @@ import software.amazon.awssdk.services.s3.S3Client;
 @Profile("prod")
 public class S3Config {
 
-  @Value("${aws.region}")
-  private String region;
+    @Value("${aws.region}")
+    private String region;
 
-  @Bean
-  public S3Client s3Client() {
-    // Usa el IAM role del EC2, sin credenciales hardcodeadas
-    return S3Client.builder()
-        .region(Region.of(region))
-        .credentialsProvider(InstanceProfileCredentialsProvider.create())
-        .build();
-  }
+    @Bean
+    public S3Client s3Client() {
+        return S3Client.builder()
+            .region(Region.of(region))
+            .credentialsProvider(InstanceProfileCredentialsProvider.create())
+            .build();
+    }
 }
