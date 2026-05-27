@@ -50,7 +50,6 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(
                         HttpMethod.POST,
-                        "/api/v1/customers/register",
                         "/api/v1/auth/**",
                         "/api/v1/backoffice/auth/login",
                         "/api/v1/customers/register",
@@ -65,11 +64,11 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/backoffice/auth/me")
                     .hasAnyRole("EMPLOYEE", "ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/customers/auth/me")
+                    .hasRole("CUSTOMER")
                     .requestMatchers(HttpMethod.POST, "/api/v1/checkout")
                     .hasRole("CUSTOMER")
                     .requestMatchers(HttpMethod.GET, "/api/v1/orders", "/api/v1/orders/{id}")
-                    .hasRole("CUSTOMER")
-                    .requestMatchers("/api/v1/orders/**", "/api/v1/auth/me")
                     .hasAnyRole("CUSTOMER", "EMPLOYEE")
                     .anyRequest()
                     .authenticated())

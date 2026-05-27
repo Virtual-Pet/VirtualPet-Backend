@@ -75,6 +75,7 @@ public class DevDataSeeder implements ApplicationRunner {
         .findByEmailIgnoreCase("cliente@demo.local")
         .ifPresent(
             u -> {
+              u.setRole(UserRole.ROLE_CUSTOMER);
               u.setPasswordHash(passwordEncoder.encode("cliente123"));
               userRepository.save(u);
             });
