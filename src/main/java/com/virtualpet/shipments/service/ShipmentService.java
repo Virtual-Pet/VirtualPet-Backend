@@ -95,12 +95,26 @@ public class ShipmentService {
     List<ShipmentSummaryDTO> data =
         rows.stream()
             .map(
-                s ->
-                    new ShipmentSummaryDTO(
-                        s.getId(),
-                        s.getOrderId(),
-                        s.getStatus(),
-                        s.getUpdatedAt() == null ? s.getCreatedAt() : s.getUpdatedAt()))
+                s -> {
+                  OrderEntity order = orderRepository.findById(s.getOrderId()).orElse(null);
+                  String contactName =
+                      order == null
+                          ? null
+                          : ((order.getContactName() == null ? "" : order.getContactName())
+                                  + " "
+                                  + (order.getContactLastname() == null
+                                      ? ""
+                                      : order.getContactLastname()))
+                              .trim();
+                  return new ShipmentSummaryDTO(
+                      s.getId(),
+                      s.getOrderId(),
+                      s.getStatus(),
+                      s.getUpdatedAt() == null ? s.getCreatedAt() : s.getUpdatedAt(),
+                      contactName,
+                      order == null ? null : order.getContactEmail(),
+                      order == null ? null : order.getTotal());
+                })
             .toList();
 
     String nextCursor =
