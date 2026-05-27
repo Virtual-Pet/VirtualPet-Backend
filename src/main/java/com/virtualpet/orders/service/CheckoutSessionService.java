@@ -89,7 +89,9 @@ public class CheckoutSessionService {
     if (!claimed) {
       Optional<CheckoutSession> existing = sessionRepository.findActiveByUser(userId);
       if (existing.isPresent() && !isExpired(existing.get())) {
-        log.debug("Lost race claiming active slot; returning existing session {}", existing.get().getId());
+        log.debug(
+            "Lost race claiming active slot; returning existing session {}",
+            existing.get().getId());
         return new StartResult(toResponse(existing.get()), false);
       }
     }

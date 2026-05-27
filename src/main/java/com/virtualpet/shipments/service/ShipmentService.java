@@ -1,5 +1,9 @@
 package com.virtualpet.shipments.service;
 
+import com.virtualpet.auth.domain.CustomerEntity;
+import com.virtualpet.auth.domain.UserEntity;
+import com.virtualpet.auth.repository.CustomerRepository;
+import com.virtualpet.auth.repository.UserRepository;
 import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.common.pagination.Cursor;
 import com.virtualpet.common.pagination.CursorCodec;
@@ -15,17 +19,13 @@ import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentSummaryDTO;
 import com.virtualpet.shipments.repository.ShipmentRepository;
 import com.virtualpet.shipments.repository.ShipmentStatusHistoryRepository;
 import com.virtualpet.shipments.spec.ShipmentSpecifications;
-import com.virtualpet.auth.domain.UserEntity;
-import com.virtualpet.auth.repository.UserRepository;
-import com.virtualpet.auth.domain.CustomerEntity;
-import com.virtualpet.auth.repository.CustomerRepository;
-import java.util.stream.Collectors;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -101,47 +101,59 @@ public class ShipmentService {
 
     List<UUID> orderIds = rows.stream().map(ShipmentEntity::getOrderId).distinct().toList();
     List<OrderEntity> orders = orderRepository.findAllById(orderIds);
-    Map<UUID, OrderEntity> orderMap = orders.stream().collect(Collectors.toMap(OrderEntity::getId, o -> o));
+    Map<UUID, OrderEntity> orderMap =
+        orders.stream().collect(Collectors.toMap(OrderEntity::getId, o -> o));
 
     List<UUID> userIds = orders.stream().map(OrderEntity::getUserId).distinct().toList();
     List<UserEntity> users = userRepository.findAllById(userIds);
-    Map<UUID, UserEntity> userMap = users.stream().collect(Collectors.toMap(UserEntity::getId, u -> u));
+    Map<UUID, UserEntity> userMap =
+        users.stream().collect(Collectors.toMap(UserEntity::getId, u -> u));
 
     List<CustomerEntity> customers = customerRepository.findAllById(userIds);
-    Map<UUID, CustomerEntity> customerMap = customers.stream().collect(Collectors.toMap(CustomerEntity::getUserId, c -> c));
+    Map<UUID, CustomerEntity> customerMap =
+        customers.stream().collect(Collectors.toMap(CustomerEntity::getUserId, c -> c));
 
     List<ShipmentSummaryDTO> data =
         rows.stream()
             .map(
                 s -> {
-                    OrderEntity order = orderMap.get(s.getOrderId());
-                    UserEntity user = order != null ? userMap.get(order.getUserId()) : null;
-                    CustomerEntity customer = order != null ? customerMap.get(order.getUserId()) : null;
+                  OrderEntity order = orderMap.get(s.getOrderId());
+                  UserEntity user = order != null ? userMap.get(order.getUserId()) : null;
+                  CustomerEntity customer =
+                      order != null ? customerMap.get(order.getUserId()) : null;
 
-                    String cName = "Invitado";
-                    if (order != null && order.getContactName() != null && !order.getContactName().isBlank()) {
-                        cName = order.getContactName() + (order.getContactLastname() != null ? " " + order.getContactLastname() : "");
-                    } else if (customer != null) {
-                        cName = customer.getName() + " " + customer.getLastname();
-                    } else if (user != null) {
-                        cName = user.getEmail();
-                    }
+                  String cName = "Invitado";
+                  if (order != null
+                      && order.getContactName() != null
+                      && !order.getContactName().isBlank()) {
+                    cName =
+                        order.getContactName()
+                            + (order.getContactLastname() != null
+                                ? " " + order.getContactLastname()
+                                : "");
+                  } else if (customer != null) {
+                    cName = customer.getName() + " " + customer.getLastname();
+                  } else if (user != null) {
+                    cName = user.getEmail();
+                  }
 
-                    String cEmail = "guest@virtualpet.com";
-                    if (order != null && order.getContactEmail() != null && !order.getContactEmail().isBlank()) {
-                        cEmail = order.getContactEmail();
-                    } else if (user != null) {
-                        cEmail = user.getEmail();
-                    }
+                  String cEmail = "guest@virtualpet.com";
+                  if (order != null
+                      && order.getContactEmail() != null
+                      && !order.getContactEmail().isBlank()) {
+                    cEmail = order.getContactEmail();
+                  } else if (user != null) {
+                    cEmail = user.getEmail();
+                  }
 
-                    return new ShipmentSummaryDTO(
-                        s.getId(),
-                        s.getOrderId(),
-                        s.getStatus(),
-                        s.getUpdatedAt() == null ? s.getCreatedAt() : s.getUpdatedAt(),
-                        cName,
-                        cEmail,
-                        order != null ? order.getTotal() : java.math.BigDecimal.ZERO);
+                  return new ShipmentSummaryDTO(
+                      s.getId(),
+                      s.getOrderId(),
+                      s.getStatus(),
+                      s.getUpdatedAt() == null ? s.getCreatedAt() : s.getUpdatedAt(),
+                      cName,
+                      cEmail,
+                      order != null ? order.getTotal() : java.math.BigDecimal.ZERO);
                 })
             .toList();
 

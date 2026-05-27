@@ -43,26 +43,27 @@ public class CatalogController {
         catalogService.list(q, category, petType, minPrice, maxPrice, cursor, limit);
     return etag.withETag(page, request, CACHE);
   }
+
   @GetMapping("/facets")
   public ResponseEntity<java.util.Map<String, Object>> facets() {
-    return ResponseEntity.ok(java.util.Map.of(
-      "petTypes", java.util.List.of(
-          java.util.Map.of("id", "perro", "name", "Perros"),
-          java.util.Map.of("id", "gato", "name", "Gatos")
-      ),
-      "categories", java.util.List.of(
-          java.util.Map.of("id", "alimentos", "name", "Alimentos", "slug", "alimentos"),
-          java.util.Map.of("id", "juguetes", "name", "Juguetes", "slug", "juguetes"),
-          java.util.Map.of("id", "higiene", "name", "Higiene", "slug", "higiene"),
-          java.util.Map.of("id", "camas", "name", "Camas", "slug", "camas")
-      ),
-      "brands", java.util.List.of(
-          java.util.Map.of("id", "Pro Plan", "name", "Pro Plan"),
-          java.util.Map.of("id", "Kong", "name", "Kong"),
-          java.util.Map.of("id", "Osspret", "name", "Osspret"),
-          java.util.Map.of("id", "Mascotify", "name", "Mascotify")
-      )
-    ));
+    return ResponseEntity.ok(
+        java.util.Map.of(
+            "petTypes",
+                java.util.List.of(
+                    java.util.Map.of("id", "perro", "name", "Perros"),
+                    java.util.Map.of("id", "gato", "name", "Gatos")),
+            "categories",
+                java.util.List.of(
+                    java.util.Map.of("id", "alimentos", "name", "Alimentos", "slug", "alimentos"),
+                    java.util.Map.of("id", "juguetes", "name", "Juguetes", "slug", "juguetes"),
+                    java.util.Map.of("id", "higiene", "name", "Higiene", "slug", "higiene"),
+                    java.util.Map.of("id", "camas", "name", "Camas", "slug", "camas")),
+            "brands",
+                java.util.List.of(
+                    java.util.Map.of("id", "Pro Plan", "name", "Pro Plan"),
+                    java.util.Map.of("id", "Kong", "name", "Kong"),
+                    java.util.Map.of("id", "Osspret", "name", "Osspret"),
+                    java.util.Map.of("id", "Mascotify", "name", "Mascotify"))));
   }
 
   @GetMapping("/{id}")
