@@ -87,10 +87,10 @@ INSERT INTO catalog.product_variants (id, product_id, sku, attributes, price, st
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c30', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b23', 'RASC-CARTON-CIRC', '{"tamaño": "40 cm diámetro", "material": "Cartón Corrugado", "extra": "Con Catnip"}', 8500.00, 45, 10, '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b23/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c30/1.jpg', TRUE);
 
 -- =============================================================================
--- 6. IMÁGENES DE LAS VARIANTES (Corregido con IDs únicos y sintaxis perfecta)
+-- 6. IMÁGENES DE LAS VARIANTES (UUIDs únicos y rutas alineadas)
 -- =============================================================================
 INSERT INTO catalog.image_variants (id, product_variant_id, image_path, is_main, order_img) VALUES
--- Perros 
+-- Perros: Royal Canin Adulto
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c11', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c11/1.jpg', TRUE, 1),
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c11', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c11/2.jpg', FALSE, 2),
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380003', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c11', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c11/3.jpg', FALSE, 3),
@@ -100,23 +100,7 @@ INSERT INTO catalog.image_variants (id, product_variant_id, image_path, is_main,
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380006', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c12', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c12/3.jpg', FALSE, 3),
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380007', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c12', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c12/4.jpg', FALSE, 4),
 
--- variante 20 kg del Excellent Perro Pollo y Arroz
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380034', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380035', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/2.jpg', FALSE, 2),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380036', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/3.jpg', FALSE, 3),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380037', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/4.jpg', FALSE, 4),
--- variante 15 kg del Excellent Perro Pollo y Arroz
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380038', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380039', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/2.jpg', FALSE, 2),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380040', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/3.jpg', FALSE, 3),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380041', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/4.jpg', FALSE, 4),
--- variante 3 kg del Excellent Perro Pollo y Arroz
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380042', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380043', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/2.jpg', FALSE, 2),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380044', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/3.jpg', FALSE, 3),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380045', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/4.jpg', FALSE, 4),
-
--- Gatos 
+-- Gatos: Pro Plan y Royal Canin Kitten
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380008', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c31', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b13/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c31/1.jpg', TRUE, 1),
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380009', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c31', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b13/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c31/2.jpg', FALSE, 2),
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380010', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c31', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b13/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c31/3.jpg', FALSE, 3),
@@ -125,36 +109,49 @@ INSERT INTO catalog.image_variants (id, product_variant_id, image_path, is_main,
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380012', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c32', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b14/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c32/2.jpg', FALSE, 2),
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380013', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c32', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b14/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c32/3.jpg', FALSE, 3),
 
--- variante 7.5 kg del Excellent Gato Pollo y Arroz
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380014', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380015', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/2.jpg', FALSE, 2),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380016', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/3.jpg', FALSE, 3),
--- variante 3.5 kg del Excellent Gato Pollo y Arroz
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380032', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380033', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/2.jpg', FALSE, 2),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380034', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/3.jpg', FALSE, 3),
--- variante 1 kg del Excellent Gato Pollo y Arroz
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380035', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380035', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/2.jpg', FALSE, 2),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380035', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/3.jpg', FALSE, 3),
+-- Gatos: Excellent 7.5kg, 3.5kg y 1kg
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380014', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380015', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33/2.jpg', FALSE, 2),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380016', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33/3.jpg', FALSE, 3),
 
--- Imagen del Comedero
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380017', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c16', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b16/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c16/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380017', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380018', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/2.jpg', FALSE, 2),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380019', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c24/3.jpg', FALSE, 3),
 
--- Imágenes del Comedero Marvel 
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380018', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b17/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380019', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b17/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17/2.jpg', FALSE, 2),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380020', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b17/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17/3.jpg', FALSE, 3),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380020', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380021', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25/2.jpg', FALSE, 2),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380022', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25/3.jpg', FALSE, 3),
 
--- Imágenes Cucha Plástica
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380021', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c18', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b18/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c18/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380022', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c18', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b18/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c18/2.jpg', FALSE, 2),
+-- Comederos (Plástico y Marvel)
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380023', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c16', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b16/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c16/1.jpg', TRUE, 1),
 
--- Imagen Cucha de Madera
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380023', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b19/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19/1.jpg', TRUE, 1),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380024', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b19/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19/2.jpg', FALSE, 2),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380024', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b17/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380025', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b17/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17/2.jpg', FALSE, 2),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380026', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b17/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c17/3.jpg', FALSE, 3),
 
--- Imagen: Torre 3 Niveles
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380037', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c29', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c29/1.jpg', TRUE, 1),
--- Imagen: Rascador de Cartn
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380038', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c30', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b23/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c30/1.jpg', TRUE, 1);
+-- Cuchas
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380027', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c18', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b18/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c18/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380028', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c18', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b18/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c18/2.jpg', FALSE, 2),
+
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380029', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b19/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380030', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b19/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19/2.jpg', FALSE, 2),
+
+-- Rascadores
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380031', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c29', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c29/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380032', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c30', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b23/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c30/1.jpg', TRUE, 1),
+
+-- Perros: Excellent Perro 20kg, 15kg y 3kg
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380033', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380034', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/2.jpg', FALSE, 2),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380035', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/3.jpg', FALSE, 3),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380036', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c26/4.jpg', FALSE, 4),
+
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380037', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380038', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27/2.jpg', FALSE, 2),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380039', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27/3.jpg', FALSE, 3),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380040', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27/4.jpg', FALSE, 4),
+
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380041', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28/1.jpg', TRUE, 1),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380042', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28/2.jpg', FALSE, 2),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380043', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28/3.jpg', FALSE, 3),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380044', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28', '/productos/b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b21/c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c28/4.jpg', FALSE, 4);
