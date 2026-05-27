@@ -21,6 +21,9 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariantEn
   @Query("SELECT v FROM ProductVariantEntity v JOIN FETCH v.product WHERE v.id = :id")
   Optional<ProductVariantEntity> findByIdWithProduct(@Param("id") UUID id);
 
+  @Query("SELECT v FROM ProductVariantEntity v JOIN FETCH v.product WHERE v.id IN :ids")
+  List<ProductVariantEntity> findAllByIdInWithProduct(@Param("ids") java.util.Collection<UUID> ids);
+
   @Query(
       """
             SELECT v FROM ProductVariantEntity v
