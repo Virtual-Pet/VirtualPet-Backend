@@ -15,39 +15,34 @@ import software.amazon.awssdk.services.s3.model.*;
 @Profile("prod")
 public class S3StorageService implements StorageService {
 
-    private final S3Client s3;
-    private final String bucket;
-    private final String region;
+  private final S3Client s3;
+  private final String bucket;
+  private final String region;
 
-    public S3StorageService(S3Client s3,
-                            @Value("${aws.s3.bucket}") String bucket,
-                            @Value("${aws.region}") String region) {
-        this.s3 = s3;
-        this.bucket = bucket;
-        this.region = region;
-    }
+  public S3StorageService(
+      S3Client s3,
+      @Value("${aws.s3.bucket}") String bucket,
+      @Value("${aws.region}") String region) {
+    this.s3 = s3;
+    this.bucket = bucket;
+    this.region = region;
+  }
 
-    @Override
-    public String upload(String key, InputStream content, String contentType) {
-        s3.putObject(
-            PutObjectRequest.builder()
-                .bucket(bucket).key(key).contentType(contentType).build(),
-            RequestBody.fromInputStream(content, -1)
-        );
-        return getUrl(key).orElseThrow();
-    }
+  @Override
+  public String upload(String key, InputStream content, String contentType) {
+    s3.putObject(
+        PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).build(),
+        RequestBody.fromInputStream(content, -1));
+    return getUrl(key).orElseThrow();
+  }
 
-    @Override
-    public Optional<String> getUrl(String key) {
-        return Optional.of(
-            "https://" + bucket + ".s3." + region + ".amazonaws.com/" + key
-        );
-    }
+  @Override
+  public Optional<String> getUrl(String key) {
+    return Optional.of("https://" + bucket + ".s3." + region + ".amazonaws.com/" + key);
+  }
 
-    @Override
-    public void delete(String key) {
-        s3.deleteObject(
-            DeleteObjectRequest.builder().bucket(bucket).key(key).build()
-        );
-    }
+  @Override
+  public void delete(String key) {
+    s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+  }
 }
