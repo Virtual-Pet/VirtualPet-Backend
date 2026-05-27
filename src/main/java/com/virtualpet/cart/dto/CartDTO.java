@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -15,7 +16,18 @@ public final class CartDTO {
 
   public record UpdateQuantityRequestDTO(@NotNull @Min(1) Integer quantity) {}
 
-  public record CartItemDTO(UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {}
+  public record CartItemDTO(
+      UUID skuId,
+      String sku,
+      UUID productId,
+      String productName,
+      String brand,
+      Map<String, String> attributes,
+      String imageUrl,
+      int quantity,
+      BigDecimal unitPrice,
+      BigDecimal subtotal,
+      boolean available) {}
 
   public record TotalsDTO(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
 

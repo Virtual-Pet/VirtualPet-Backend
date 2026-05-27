@@ -137,10 +137,13 @@ public class CatalogService {
     return new ProductSummaryDTO(
         product.getId(),
         product.getName(),
+        product.getDescription(),
+        product.getBrand(),
         product.getCategory() == null ? null : product.getCategory().getName(),
         product.getPetType(),
         basePrice,
-        thumbnail);
+        thumbnail,
+        product.isActive());
   }
 
   private ProductDTO toDetail(ProductEntity product) {
@@ -156,8 +159,11 @@ public class CatalogService {
         product.getId(),
         product.getName(),
         product.getDescription(),
+        product.getBrand(),
         product.getCategory() == null ? null : product.getCategory().getName(),
         product.getPetType(),
+        product.isActive(),
+        product.getCreatedAt(),
         images,
         skus);
   }
@@ -165,8 +171,14 @@ public class CatalogService {
   private SkuDTO toSku(ProductVariantEntity variant) {
     return new SkuDTO(
         variant.getId(),
+        variant.getSku(),
         parseAttributes(variant.getAttributes()),
         variant.getPrice(),
+        variant.getStock(),
+        variant.getStockMin(),
+        variant.getImageUrl(),
+        variant.isActive(),
+        variant.getCreatedAt(),
         variant.getStock() > 0);
   }
 

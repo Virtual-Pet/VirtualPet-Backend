@@ -4,11 +4,13 @@ import com.virtualpet.cart.domain.Cart;
 import com.virtualpet.cart.domain.CartItem;
 import com.virtualpet.cart.dto.CartDTO.CartItemQuantityDTO;
 import com.virtualpet.cart.dto.CartDTO.TotalsDTO;
+import com.virtualpet.catalog.domain.ProductEntity;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.common.exception.ApiException;
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,6 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -38,6 +41,7 @@ public class CartService {
   private static final long TTL_HOURS = 24;
   private static final String CURRENCY = "ARS";
   private static final BigDecimal SHIPPING = BigDecimal.ZERO;
+  private static final TypeReference<Map<String, String>> ATTRS_TYPE = new TypeReference<>() {};
 
   private final StringRedisTemplate redisTemplate;
   private final ObjectMapper objectMapper;
@@ -129,16 +133,7 @@ public class CartService {
     Map<UUID, ProductVariantEntity> byId = fetchVariants(ids);
 
     List<com.virtualpet.cart.dto.CartDTO.CartItemDTO> dtoItems =
-        cart.getItems().stream()
-            .map(
-                item -> {
-                  ProductVariantEntity variant = byId.get(item.getSkuId());
-                  BigDecimal unitPrice = variant == null ? BigDecimal.ZERO : variant.getPrice();
-                  BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
-                  return new com.virtualpet.cart.dto.CartDTO.CartItemDTO(
-                      item.getSkuId(), item.getQuantity(), unitPrice, subtotal);
-                })
-            .toList();
+        cart.getItems().stream().map(item -> toItemDto(item, byId.get(item.getSkuId()))).toList();
 
     BigDecimal itemsTotal =
         dtoItems.stream()
@@ -148,8 +143,40 @@ public class CartService {
     return new com.virtualpet.cart.dto.CartDTO.CartViewDTO(dtoItems, totals, CURRENCY);
   }
 
+  private com.virtualpet.cart.dto.CartDTO.CartItemDTO toItemDto(
+      CartItem item, ProductVariantEntity variant) {
+    BigDecimal unitPrice = variant == null ? BigDecimal.ZERO : variant.getPrice();
+    BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+    ProductEntity product = variant == null ? null : variant.getProduct();
+    boolean available = variant != null && variant.getStock() >= item.getQuantity();
+    return new com.virtualpet.cart.dto.CartDTO.CartItemDTO(
+        item.getSkuId(),
+        variant == null ? null : variant.getSku(),
+        product == null ? null : product.getId(),
+        product == null ? null : product.getName(),
+        product == null ? null : product.getBrand(),
+        variant == null ? Map.of() : parseAttributes(variant.getAttributes()),
+        variant == null ? null : variant.getImageUrl(),
+        item.getQuantity(),
+        unitPrice,
+        subtotal,
+        available);
+  }
+
   private Map<UUID, ProductVariantEntity> fetchVariants(Collection<UUID> ids) {
-    return variantRepository.findAllById(ids).stream()
+    return variantRepository.findAllByIdInWithProduct(ids).stream()
         .collect(Collectors.toMap(ProductVariantEntity::getId, Function.identity()));
+  }
+
+  private Map<String, String> parseAttributes(String json) {
+    if (json == null || json.isBlank()) {
+      return new LinkedHashMap<>();
+    }
+    try {
+      return objectMapper.readValue(json, ATTRS_TYPE);
+    } catch (Exception ex) {
+      log.warn("Failed to parse variant attributes JSON: {}", ex.getMessage());
+      return new LinkedHashMap<>();
+    }
   }
 }
