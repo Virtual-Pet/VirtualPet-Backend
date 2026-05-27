@@ -1,0 +1,1018 @@
+openapi: 3.1.0
+info:
+  title: VirtualPet API
+  version: 1.0.0
+  description: >
+    E-commerce de productos para mascotas. Cubre dos aplicaciones cliente:
+    Marketplace (clientes finales) y Backoffice (operarios de depósito).
+
+
+    Convenciones transversales:
+
+    - **Dinero:** importes como string decimal con escala fija (BigDecimal en backend);
+      moneda en ISO 4217 (`java.util.Currency`). Se serializan como string para no perder
+      precisión en clientes JavaScript.
+
+    - **Paginación:** por cursor opaco (`cursor`, `limit`) en los listados.
+
+    - **Errores:** RFC 7807 (`application/problem+json`).
+
+    - **Idempotencia:** header `Idempotency-Key` obligatorio en operaciones de pago.
+
+    - **Correlación:** header `X-Request-Id` en toda request/response.
+
+    - **Seguridad:** rate limiting (Redis) en endpoints de auth; `429` con `Retry-After`.
+servers:
+  - url: https://api.virtualpet.com/api/v1
+    description: Producción
+  - url: http://localhost:8080/api/v1
+    description: Local
+
+tags:
+  - name: auth
+    description: Autenticación, registro y gestión de cuenta
+  - name: catalog
+    description: Catálogo de productos (read-only, público)
+  - name: cart
+    description: Carrito de compras (Redis, lazy)
+  - name: checkout
+    description: Sesión de checkout y pago
+  - name: payments
+    description: Pagos y webhooks de la pasarela
+  - name: orders
+    description: Órdenes confirmadas
+  - name: shipments
+    description: Envíos y seguimiento
+  - name: health
+    description: Disponibilidad
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login
+      description: Autentica con email y contraseña y devuelve los tokens. No crea carrito (creación lazy).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Autenticado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokens' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Logout
+      description: Invalida el refreshToken (blacklist en Redis). El accessToken caduca solo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '204': { description: Sesión cerrada }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refrescar access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: Nuevo access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  tokenType: { type: string, examples: [Bearer] }
+                  expiresIn: { type: integer, examples: [900] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/register/customer:
+    post:
+      tags: [auth]
+      summary: Registro de cliente
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, firstName, lastName]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                firstName: { type: string }
+                lastName: { type: string }
+      responses:
+        '201':
+          description: Cliente creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserSummary' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/register/employee:
+    post:
+      tags: [auth]
+      summary: Registro de operario (ADMIN)
+      description: Alta de operario de backoffice. Solo ADMIN.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, firstName, lastName]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                firstName: { type: string }
+                lastName: { type: string }
+      responses:
+        '201':
+          description: Operario creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserSummary' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Datos del usuario autenticado
+      responses:
+        '200':
+          description: Perfil
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [auth]
+      summary: Actualizar datos personales
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/password/change:
+    post:
+      tags: [auth]
+      summary: Cambiar contraseña (autenticado)
+      description: Exige la contraseña actual; invalida el resto de las sesiones.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string, format: password }
+                newPassword: { type: string, format: password }
+      responses:
+        '204': { description: Contraseña cambiada }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /products:
+    get:
+      tags: [catalog]
+      summary: Listar y buscar productos
+      description: Búsqueda por texto y filtros por atributos, con paginación por cursor. Cacheable (ETag).
+      security: []
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: Búsqueda full-text }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: petType, in: query, schema: { type: string } }
+        - { name: minPrice, in: query, schema: { type: string } }
+        - { name: maxPrice, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/IfNoneMatch' }
+      responses:
+        '200':
+          description: Página de productos
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+            Cache-Control: { schema: { type: string }, description: 'ej. public, max-age=300' }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPage'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ProductSummary' }
+        '304': { description: No modificado (revalidación con If-None-Match) }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /products/{id}:
+    get:
+      tags: [catalog]
+      summary: Detalle de producto
+      description: Incluye todas las variantes (SKUs) embebidas. Cacheable (ETag).
+      security: []
+      parameters:
+        - { $ref: '#/components/parameters/ProductId' }
+        - { $ref: '#/components/parameters/IfNoneMatch' }
+      responses:
+        '200':
+          description: Producto
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+            Cache-Control: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '304': { description: No modificado }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /cart:
+    get:
+      tags: [cart]
+      summary: Obtener el carrito
+      description: Devuelve el carrito del usuario. Si aún no existe (lazy), responde carrito vacío con 200.
+      responses:
+        '200':
+          description: Carrito (vacío o con items)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /cart/items/{skuId}:
+    put:
+      tags: [cart]
+      summary: Fijar cantidad de un SKU (upsert)
+      description: Fija la cantidad exacta. Dispara la creación lazy del carrito si no existe. Idempotente.
+      parameters:
+        - { $ref: '#/components/parameters/SkuId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Item resultante
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CartItemQuantity' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [cart]
+      summary: Eliminar un SKU del carrito
+      description: Elimina el producto por completo. Idempotente (éxito aunque no estuviera).
+      parameters:
+        - { $ref: '#/components/parameters/SkuId' }
+      responses:
+        '204': { description: Eliminado (o ya no estaba) }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /cart/checkout:
+    post:
+      tags: [cart, checkout]
+      summary: Iniciar checkout
+      description: >
+        Re-cotiza precios contra el catálogo y re-valida stock, arma el snapshot inmutable
+        y crea la sesión. Idempotente por reúso: devuelve la sesión activa si ya existe (200),
+        crea una nueva si no (201).
+      responses:
+        '201':
+          description: Sesión creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckoutSession' }
+        '200':
+          description: Sesión activa reutilizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckoutSession' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /checkout/sessions/{id}:
+    get:
+      tags: [checkout]
+      summary: Consultar / reanudar sesión
+      parameters:
+        - { $ref: '#/components/parameters/SessionId' }
+      responses:
+        '200':
+          description: Sesión
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckoutSession' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /checkout/sessions/{id}/shipping-address:
+    put:
+      tags: [checkout]
+      summary: Fijar dirección de entrega
+      description: Dirección de destino del delivery. Obligatoria antes del payment intent. (Validación de área de cobertura diferida a v2.)
+      parameters:
+        - { $ref: '#/components/parameters/SessionId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Address' }
+      responses:
+        '200':
+          description: Sesión actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckoutSession' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /checkout/sessions/{id}/payment-intents:
+    post:
+      tags: [checkout, payments]
+      summary: Iniciar pago (payment intent)
+      description: >
+        Persiste un Payment (PENDING) atado a la sesión y devuelve la checkoutUrl hosteada.
+        El backend nunca ve datos de tarjeta. Pasa la sesión a AWAITING_PAYMENT.
+      parameters:
+        - { $ref: '#/components/parameters/SessionId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      responses:
+        '201':
+          description: Payment intent creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentIntent' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+
+  /checkout/sessions/{id}/confirm:
+    post:
+      tags: [checkout]
+      summary: Confirmar (retorno del cliente)
+      description: >
+        Verifica el pago contra la pasarela; si está pagado, crea orden + shipment, descuenta
+        stock y vacía el carrito (operación idempotente que converge con el webhook).
+      parameters:
+        - { $ref: '#/components/parameters/SessionId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      responses:
+        '201':
+          description: Orden confirmada (idempotente)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderConfirmation' }
+        '202': { description: 'Pago aún no acreditado, reintentar' }
+        '402': { description: Pago rechazado (sesión FAILED) }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /payments/{id}:
+    get:
+      tags: [payments]
+      summary: Estado de un pago (polling)
+      description: Estado normalizado del pago, agnóstico al proveedor. Complementa al webhook.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Pago
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /payments/webhook/{provider}:
+    post:
+      tags: [payments]
+      summary: Webhook de la pasarela
+      description: >
+        Notificación asíncrona del proveedor (fake en v1; stripe/mercadopago en v2).
+        Autenticado por firma del proveedor. Normaliza el payload a un evento interno e
+        idempotente por providerPaymentId. Ante PAID crea la orden; ante FAILED deja la sesión FAILED.
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, examples: [fake, stripe, mercadopago] }
+      requestBody:
+        required: true
+        description: Payload propio del proveedor (forma libre; el backend lo normaliza).
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Recibido (durablemente persistido; procesamiento async) }
+        '400': { description: Firma inválida }
+
+  /fake-provider/payments/{providerPaymentId}/{action}:
+    post:
+      tags: [payments]
+      summary: '[Solo v1 / no prod] Controlar el pago fake'
+      description: >
+        Simula las acciones de la página hosteada de un proveedor real (approve→PAID,
+        reject→FAILED, processing→PROCESSING). Tras un delay opcional dispara el webhook fake.
+        Deshabilitado en el perfil de producción. Se elimina en v2.
+      security: []
+      parameters:
+        - name: providerPaymentId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: action
+          in: path
+          required: true
+          schema: { type: string, enum: [approve, reject, processing] }
+      responses:
+        '200': { description: Acción aplicada }
+        '403': { description: Deshabilitado en producción }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders:
+    get:
+      tags: [orders]
+      summary: Listar órdenes
+      description: CUSTOMER ve solo las propias; EMPLOYEE/ADMIN ven todas. Paginación por cursor.
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/OrderStatus' } }
+        - { name: user, in: query, schema: { type: string }, description: 'Filtro por usuario (employee/admin)' }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Página de órdenes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPage'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/OrderSummary' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /orders/{id}:
+    get:
+      tags: [orders]
+      summary: Detalle de orden
+      description: Line items, totales, dirección y shipment embebidos.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Orden
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{id}/cancel:
+    post:
+      tags: [orders]
+      summary: Cancelar orden (único punto de cancelación)
+      description: >
+        Orquesta en una transacción: orden→CANCELLED, shipment→CANCELLED, restitución de stock
+        e inicio de reembolso (Payment→REFUNDED por webhook async). Único camino de cancelación,
+        también para el backoffice. Solo si el envío está en CONFIRMED o PREPARED.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Orden cancelada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderCancellation' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /shipments:
+    get:
+      tags: [shipments]
+      summary: Listar envíos
+      description: CUSTOMER con ?user=me ve los propios; EMPLOYEE filtra por ?status. Paginación por cursor.
+      parameters:
+        - { name: user, in: query, schema: { type: string }, description: 'me para el cliente' }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ShipmentStatus' } }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Página de envíos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPage'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ShipmentSummary' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /shipments/{id}:
+    get:
+      tags: [shipments]
+      summary: Detalle de envío
+      description: Incluye historial de estados. El cliente solo ve el propio.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Envío
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Shipment' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [shipments]
+      summary: Avanzar estado del envío (EMPLOYEE)
+      description: >
+        Avanza por los estados de progreso (CONFIRMED→PREPARED→IN_TRANSIT→DELIVERED).
+        No puede llevar a CANCELLED (eso va por /orders/{id}/cancel).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [PREPARED, IN_TRANSIT, DELIVERED]
+      responses:
+        '200':
+          description: Envío actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Shipment' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /health:
+    get:
+      tags: [health]
+      summary: Disponibilidad
+      security: []
+      responses:
+        '200':
+          description: Servicio saludable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, examples: [UP] }
+                  dependencies:
+                    type: object
+                    additionalProperties: { type: string }
+        '503': { description: Alguna dependencia caída }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string }
+      description: Cursor opaco de la página previa
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      schema: { type: string }
+      description: ETag para revalidación de caché
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+      description: Clave de idempotencia para operaciones de pago
+    ProductId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    SkuId:
+      name: skuId
+      in: path
+      required: true
+      schema: { type: string }
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: checkoutSessionId
+
+  headers:
+    ETag:
+      schema: { type: string }
+      description: Identificador de versión del recurso para caché
+    XRequestId:
+      schema: { type: string }
+      description: ID de correlación, devuelto en toda respuesta
+
+  responses:
+    BadRequest:
+      description: Solicitud inválida
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: No autenticado / credenciales inválidas
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: No autorizado (rol o propiedad)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Recurso inexistente
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: Conflicto de estado (stock, estado de sesión/envío, duplicado, no cancelable)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationError:
+      description: Error de validación del payload
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TooManyRequests:
+      description: Rate limit excedido
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Segundos hasta poder reintentar
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    BadGateway:
+      description: La pasarela de pago no respondió
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    Money:
+      type: string
+      description: Importe decimal con escala fija, serializado como string (BigDecimal).
+      examples: ['1500.00']
+    Currency:
+      type: string
+      description: Código de moneda ISO 4217.
+      examples: [ARS]
+
+    Problem:
+      type: object
+      description: Error según RFC 7807.
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              issue: { type: string }
+
+    CursorPage:
+      type: object
+      properties:
+        data: { type: array, items: {} }
+        limit: { type: integer }
+        nextCursor: { type: [string, 'null'] }
+        hasMore: { type: boolean }
+
+    AuthTokens:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        tokenType: { type: string, examples: [Bearer] }
+        expiresIn: { type: integer, examples: [900] }
+        user: { $ref: '#/components/schemas/UserSummary' }
+
+    UserSummary:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        role: { $ref: '#/components/schemas/Role' }
+
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        firstName: { type: string }
+        lastName: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+
+    Role:
+      type: string
+      enum: [CUSTOMER, EMPLOYEE, ADMIN]
+
+    ProductSummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        category: { type: string }
+        petType: { type: string }
+        basePrice: { $ref: '#/components/schemas/Money' }
+        thumbnail: { type: string, format: uri }
+
+    Product:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        category: { type: string }
+        petType: { type: string }
+        images:
+          type: array
+          items: { type: string, format: uri }
+        skus:
+          type: array
+          items: { $ref: '#/components/schemas/Sku' }
+
+    Sku:
+      type: object
+      properties:
+        skuId: { type: string }
+        attributes:
+          type: object
+          additionalProperties: { type: string }
+        price: { $ref: '#/components/schemas/Money' }
+        available: { type: boolean }
+
+    CartItem:
+      type: object
+      properties:
+        skuId: { type: string }
+        quantity: { type: integer }
+        unitPrice: { $ref: '#/components/schemas/Money' }
+        subtotal: { $ref: '#/components/schemas/Money' }
+
+    CartItemQuantity:
+      type: object
+      properties:
+        skuId: { type: string }
+        quantity: { type: integer }
+
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+        totals: { $ref: '#/components/schemas/Totals' }
+        currency: { $ref: '#/components/schemas/Currency' }
+
+    Totals:
+      type: object
+      properties:
+        items: { $ref: '#/components/schemas/Money' }
+        shipping: { $ref: '#/components/schemas/Money' }
+        grandTotal: { $ref: '#/components/schemas/Money' }
+
+    Address:
+      type: object
+      required: [addressLine, city, postalCode]
+      properties:
+        addressLine: { type: string }
+        city: { type: string }
+        state: { type: string }
+        country: { type: string }
+        postalCode: { type: string }
+
+    CheckoutSession:
+      type: object
+      properties:
+        checkoutSessionId: { type: string }
+        status: { $ref: '#/components/schemas/SessionStatus' }
+        lineItems:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+        totals: { $ref: '#/components/schemas/Totals' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        shippingAddress:
+          oneOf:
+            - { $ref: '#/components/schemas/Address' }
+            - { type: 'null' }
+        expiresAt: { type: string, format: date-time }
+
+    SessionStatus:
+      type: string
+      enum: [PENDING, AWAITING_PAYMENT, PAID, CONFIRMED, EXPIRED, FAILED]
+
+    PaymentIntent:
+      type: object
+      properties:
+        paymentId: { type: string }
+        provider: { type: string, examples: [fake] }
+        providerPaymentId: { type: string }
+        checkoutUrl: { type: string, format: uri }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        status: { $ref: '#/components/schemas/PaymentStatus' }
+
+    Payment:
+      type: object
+      properties:
+        paymentId: { type: string }
+        provider: { type: string }
+        providerPaymentId: { type: string }
+        status: { $ref: '#/components/schemas/PaymentStatus' }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        orderId: { type: [string, 'null'] }
+
+    PaymentStatus:
+      type: string
+      enum: [PENDING, PROCESSING, PAID, FAILED, REFUNDED]
+
+    OrderConfirmation:
+      type: object
+      properties:
+        orderId: { type: string }
+        shipmentId: { type: string }
+        status: { type: string, examples: [CONFIRMED] }
+
+    OrderCancellation:
+      type: object
+      properties:
+        orderId: { type: string }
+        status: { type: string, examples: [CANCELLED] }
+        shipment:
+          type: object
+          properties:
+            shipmentId: { type: string }
+            status: { type: string, examples: [CANCELLED] }
+        refund:
+          type: object
+          properties:
+            paymentId: { type: string }
+            status: { $ref: '#/components/schemas/PaymentStatus' }
+
+    OrderStatus:
+      type: string
+      enum: [CONFIRMED, CANCELLED]
+
+    OrderSummary:
+      type: object
+      properties:
+        orderId: { type: string }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        total: { $ref: '#/components/schemas/Money' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        createdAt: { type: string, format: date-time }
+        shipmentId: { type: string }
+
+    Order:
+      type: object
+      properties:
+        orderId: { type: string }
+        customerId: { type: string }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        lineItems:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+        totals: { $ref: '#/components/schemas/Totals' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        shippingAddress: { $ref: '#/components/schemas/Address' }
+        shipment:
+          type: object
+          properties:
+            shipmentId: { type: string }
+            status: { $ref: '#/components/schemas/ShipmentStatus' }
+        createdAt: { type: string, format: date-time }
+
+    ShipmentStatus:
+      type: string
+      enum: [CONFIRMED, PREPARED, IN_TRANSIT, DELIVERED, CANCELLED]
+
+    ShipmentSummary:
+      type: object
+      properties:
+        shipmentId: { type: string }
+        orderId: { type: string }
+        status: { $ref: '#/components/schemas/ShipmentStatus' }
+        updatedAt: { type: string, format: date-time }
+
+    Shipment:
+      type: object
+      properties:
+        shipmentId: { type: string }
+        orderId: { type: string }
+        status: { $ref: '#/components/schemas/ShipmentStatus' }
+        shippingAddress: { $ref: '#/components/schemas/Address' }
+        statusHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              status: { $ref: '#/components/schemas/ShipmentStatus' }
+              at: { type: string, format: date-time }

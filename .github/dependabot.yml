@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - java
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*"
+          - "org.springframework.boot*"
+      test:
+        patterns:
+          - "*junit*"
+          - "*mockito*"
+          - "*testcontainers*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - docker
