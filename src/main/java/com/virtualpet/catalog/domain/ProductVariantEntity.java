@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,6 +44,19 @@ public class ProductVariantEntity {
   @Column(nullable = false)
   private int stock;
 
+<<<<<<< HEAD
   @Column(name = "image_path")
+=======
+  @Column(name = "stock_min", nullable = false)
+  private int stockMin;
+
+  @Column(name = "image_url")
+>>>>>>> develop
   private String imageUrl;
+
+  @Column(nullable = false)
+  private boolean active = true;
+
+  @Column(name = "created_at", nullable = false)
+  private Instant createdAt = Instant.now();
 }

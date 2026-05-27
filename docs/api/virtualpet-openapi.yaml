@@ -818,19 +818,25 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+        description: { type: string, nullable: true }
+        brand: { type: string, nullable: true }
         category: { type: string }
         petType: { type: string }
         basePrice: { $ref: '#/components/schemas/Money' }
-        thumbnail: { type: string, format: uri }
+        thumbnail: { type: string, format: uri, nullable: true }
+        active: { type: boolean }
 
     Product:
       type: object
       properties:
         id: { type: string }
         name: { type: string }
-        description: { type: string }
+        description: { type: string, nullable: true }
+        brand: { type: string, nullable: true }
         category: { type: string }
         petType: { type: string }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
         images:
           type: array
           items: { type: string, format: uri }
@@ -842,19 +848,34 @@ components:
       type: object
       properties:
         skuId: { type: string }
+        sku: { type: string }
         attributes:
           type: object
           additionalProperties: { type: string }
         price: { $ref: '#/components/schemas/Money' }
+        stock: { type: integer }
+        stockMin: { type: integer }
+        imageUrl: { type: string, format: uri, nullable: true }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
         available: { type: boolean }
 
     CartItem:
       type: object
       properties:
         skuId: { type: string }
+        sku: { type: string, nullable: true }
+        productId: { type: string, nullable: true }
+        productName: { type: string, nullable: true }
+        brand: { type: string, nullable: true }
+        attributes:
+          type: object
+          additionalProperties: { type: string }
+        imageUrl: { type: string, format: uri, nullable: true }
         quantity: { type: integer }
         unitPrice: { $ref: '#/components/schemas/Money' }
         subtotal: { $ref: '#/components/schemas/Money' }
+        available: { type: boolean }
 
     CartItemQuantity:
       type: object

@@ -52,7 +52,11 @@ public class SecurityConfig {
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/register/customer")
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**")
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/api/v1/products",
+                        "/api/v1/products/**",
+                        "/api/v1/categories")
                     .permitAll()
                     .requestMatchers(
                         HttpMethod.POST, "/api/v1/payments/webhook/**", "/api/v1/fake-provider/**")

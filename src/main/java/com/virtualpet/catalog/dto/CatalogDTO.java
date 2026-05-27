@@ -1,6 +1,7 @@
 package com.virtualpet.catalog.dto;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,20 +17,35 @@ public final class CatalogDTO {
   public record ProductSummaryDTO(
       UUID id,
       String name,
+      String description,
+      String brand,
       String category,
       String petType,
       BigDecimal basePrice,
-      String thumbnail) {}
+      String thumbnail,
+      boolean active) {}
 
   public record ProductDTO(
       UUID id,
       String name,
       String description,
+      String brand,
       String category,
       String petType,
+      boolean active,
+      Instant createdAt,
       List<String> images,
       List<SkuDTO> skus) {}
 
   public record SkuDTO(
-      UUID skuId, Map<String, String> attributes, BigDecimal price, boolean available) {}
+      UUID skuId,
+      String sku,
+      Map<String, String> attributes,
+      BigDecimal price,
+      int stock,
+      int stockMin,
+      String imageUrl,
+      boolean active,
+      Instant createdAt,
+      boolean available) {}
 }

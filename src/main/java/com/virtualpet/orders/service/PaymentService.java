@@ -125,7 +125,8 @@ public class PaymentService {
 
     return switch (payment.getStatus()) {
       case PAID -> {
-        OrderConfirmationResponseDTO body = confirmOrchestrator.confirmPaidSession(session, payment);
+        OrderConfirmationResponseDTO body =
+            confirmOrchestrator.confirmPaidSession(session, payment);
         yield new ConfirmOutcome(HttpStatus.CREATED, body);
       }
       case FAILED -> new ConfirmOutcome(HttpStatus.PAYMENT_REQUIRED, null);

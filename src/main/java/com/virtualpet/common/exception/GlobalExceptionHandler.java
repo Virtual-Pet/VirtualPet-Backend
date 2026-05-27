@@ -99,7 +99,9 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ProblemDetail> handleGeneric(Exception ex, HttpServletRequest req) {
     log.error("Unhandled exception", ex);
-    return respond(problem(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error", req));
+    return respond(
+        problem(
+            HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error: " + ex.getMessage(), req));
   }
 
   private ProblemDetail problem(HttpStatus status, String detail, HttpServletRequest req) {

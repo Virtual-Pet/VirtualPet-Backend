@@ -97,7 +97,8 @@ public class OrderService {
   /* ---------- Cancel ---------- */
 
   @Transactional
-  public OrderCancellationDTO cancel(UUID orderId, UUID callerId, boolean isCustomer, String reason) {
+  public OrderCancellationDTO cancel(
+      UUID orderId, UUID callerId, boolean isCustomer, String reason) {
     OrderEntity order = loadAccessible(orderId, callerId, isCustomer);
     return cancelOrchestrator.cancel(order, reason);
   }
