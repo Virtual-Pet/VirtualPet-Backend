@@ -1,93 +1,75 @@
 package com.virtualpet.auth.controller;
 
-import com.virtualpet.auth.dto.AuthDTO.AuthTokensDTO;
-import com.virtualpet.auth.dto.AuthDTO.ChangePasswordRequestDTO;
-import com.virtualpet.auth.dto.AuthDTO.LoginRequestDTO;
-import com.virtualpet.auth.dto.AuthDTO.LogoutRequestDTO;
-import com.virtualpet.auth.dto.AuthDTO.RefreshRequestDTO;
-import com.virtualpet.auth.dto.AuthDTO.RefreshResponseDTO;
-import com.virtualpet.auth.dto.AuthDTO.RegisterCustomerRequestDTO;
-import com.virtualpet.auth.dto.AuthDTO.RegisterEmployeeRequestDTO;
-import com.virtualpet.auth.dto.AuthDTO.UpdateMeRequestDTO;
-import com.virtualpet.auth.dto.AuthDTO.UserDTO;
-import com.virtualpet.auth.dto.AuthDTO.UserSummaryDTO;
+import com.virtualpet.auth.dto.AuthDTO.AuthResponse;
+import com.virtualpet.auth.dto.AuthDTO.ChangePasswordRequest;
+import com.virtualpet.auth.dto.AuthDTO.ForgotPasswordRequest;
+import com.virtualpet.auth.dto.AuthDTO.MessageResponse;
+import com.virtualpet.auth.dto.AuthDTO.RefreshTokenRequest;
+import com.virtualpet.auth.dto.AuthDTO.ResetPasswordRequest;
 import com.virtualpet.auth.service.AuthService;
+import com.virtualpet.auth.service.PasswordResetService;
+import com.virtualpet.auth.service.RefreshTokenService;
 import com.virtualpet.common.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Operaciones de autenticación compartidas por todos los roles.
+ * Login del marketplace vive en CustomerController.
+ * Login del backoffice vive en BackofficeAuthController.
+ */
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-  private final AuthService authService;
+    private final AuthService authService;
+    private final PasswordResetService passwordResetService;
+    private final RefreshTokenService refreshTokenService;
 
-  /* ---------- Session ---------- */
+    /**
+     * Rota el par access token + refresh token.
+     * Revoca el refresh token usado y emite uno nuevo.
+     * El cliente debe reemplazar ambos tokens.
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(
+        @Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(refreshTokenService.refreshAccessToken(request.refreshToken()));
+    }
 
-  @PostMapping("/login")
-  public ResponseEntity<AuthTokensDTO> login(@Valid @RequestBody LoginRequestDTO request) {
-    return ResponseEntity.ok(this.authService.login(request));
-  }
 
-  @PostMapping("/logout")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void logout(@Valid @RequestBody LogoutRequestDTO request) {
-    authService.logout(request.refreshToken());
-  }
+    /** Envía el email con el link de reset. Siempre responde 200 para no exponer si el email existe. */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponse> forgotPassword(
+        @Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request);
+        return ResponseEntity.ok(new MessageResponse("Si el email existe, recibirás un enlace para restablecer tu contraseña."));
+    }
 
-  @PostMapping("/refresh")
-  public ResponseEntity<RefreshResponseDTO> refresh(@Valid @RequestBody RefreshRequestDTO request) {
-    return ResponseEntity.ok(authService.refresh(request.refreshToken()));
-  }
+    /** Consume el token del email y aplica la nueva contraseña. */
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(
+        @Valid @RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(passwordResetService.resetPassword(request));
+    }
 
-  /* ---------- Registration ---------- */
-
-  @PostMapping("/register/customer")
-  @ResponseStatus(HttpStatus.CREATED)
-  public UserSummaryDTO registerCustomer(@Valid @RequestBody RegisterCustomerRequestDTO request) {
-    return authService.registerCustomer(request);
-  }
-
-  @PostMapping("/register/employee")
-  @PreAuthorize("hasRole('ADMIN')")
-  @ResponseStatus(HttpStatus.CREATED)
-  public UserSummaryDTO registerEmployee(@Valid @RequestBody RegisterEmployeeRequestDTO request) {
-    return authService.registerEmployee(request);
-  }
-
-  /* ---------- Profile ---------- */
-
-  @GetMapping("/me")
-  public UserDTO getMe(@AuthenticationPrincipal UserPrincipal currentUser) {
-    return authService.getMe(currentUser.getId());
-  }
-
-  @PatchMapping("/me")
-  public UserDTO updateMe(
-      @AuthenticationPrincipal UserPrincipal currentUser,
-      @Valid @RequestBody UpdateMeRequestDTO request) {
-    return authService.updateMe(currentUser.getId(), request);
-  }
-
-  /* ---------- Passwords ---------- */
-
-  @PostMapping("/password/change")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void changePassword(
-      @AuthenticationPrincipal UserPrincipal currentUser,
-      @Valid @RequestBody ChangePasswordRequestDTO request) {
-    authService.changePassword(currentUser.getId(), request);
-  }
+    /**
+     * Cambia la contraseña del usuario autenticado.
+     * Requiere la contraseña actual como segunda verificación.
+     * Invalida todas las sesiones activas al completarse.
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<MessageResponse> changePassword(
+        @Valid @RequestBody ChangePasswordRequest request,
+        @AuthenticationPrincipal UserPrincipal currentUser) {
+        authService.changePassword(currentUser.getId(), request);
+        return ResponseEntity.ok(new MessageResponse("Contraseña actualizada. Por seguridad, iniciá sesión nuevamente."));
+    }
 }

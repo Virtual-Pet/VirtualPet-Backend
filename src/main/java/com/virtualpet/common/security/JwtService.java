@@ -26,12 +26,26 @@ public class JwtService {
     return Jwts.builder()
         .subject(userId.toString())
         .claim("email", email)
-        .claim("role", role)
+      .claim("role", role)
+      .claim("forcePasswordChange", false)
         .issuedAt(now)
         .expiration(new Date(now.getTime() + expirationMs))
         .signWith(key)
         .compact();
   }
+
+    public String generate(UUID userId, String email, String role, boolean forcePasswordChange) {
+      Date now = new Date();
+      return Jwts.builder()
+      .subject(userId.toString())
+      .claim("email", email)
+      .claim("role", role)
+      .claim("forcePasswordChange", forcePasswordChange)
+      .issuedAt(now)
+      .expiration(new Date(now.getTime() + expirationMs))
+      .signWith(key)
+      .compact();
+    }
 
   public Claims parse(String token) {
     return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();

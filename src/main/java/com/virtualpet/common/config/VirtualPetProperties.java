@@ -18,6 +18,7 @@ public class VirtualPetProperties {
   private Payment payment = new Payment();
   private Mercadopago mercadopago = new Mercadopago();
   private App app = new App();
+  private Mail mail = new Mail();
 
   @Getter
   @Setter
@@ -56,5 +57,12 @@ public class VirtualPetProperties {
   @Setter
   public static class App {
     private String frontendUrl = "http://localhost:3000";
+  }
+
+   @Getter
+  @Setter
+  public static class Mail {
+    /** Dirección remitente (normalmente igual a GMAIL_USERNAME). */
+    private String from = "";
   }
 }

@@ -30,13 +30,14 @@ import org.springframework.http.HttpStatus;
 class RefreshTokenServiceTest {
 
   @Mock private RefreshTokenRepository repository;
+  @Mock private com.virtualpet.common.security.JwtService jwtService;
 
   private RefreshTokenService service;
   private UserEntity user;
 
   @BeforeEach
   void setup() {
-    service = new RefreshTokenService(repository);
+    service = new RefreshTokenService(repository, jwtService);
     user =
         UserEntity.builder()
             .id(UUID.randomUUID())

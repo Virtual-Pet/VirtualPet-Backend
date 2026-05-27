@@ -6,13 +6,13 @@ import java.util.UUID;
 import lombok.*;
 
 @Entity
-@Table(schema = "auth", name = "refresh_token")
+@Table(schema = "auth", name = "password_reset_tokens")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RefreshTokenEntity {
+public class PasswordResetTokenEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -22,15 +22,14 @@ public class RefreshTokenEntity {
   @JoinColumn(name = "user_id", nullable = false)
   private UserEntity user;
 
-  @Column(name = "token_hash", nullable = false, unique = true)
-  private String tokenHash; // Se guarda hasheado por seguridad
+  @Column(name = "password_token", nullable = false, unique = true)
+  private String token; // Token seguro autogenerado
 
   @Column(name = "expires_at", nullable = false)
   private Instant expiresAt;
 
-  @Column(nullable = false)
-  @Builder.Default
-  private Boolean revoked = false;
+  @Column(name = "used_at")
+  private Instant usedAt;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   @Builder.Default
