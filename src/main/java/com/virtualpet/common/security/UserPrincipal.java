@@ -15,14 +15,12 @@ public class UserPrincipal implements UserDetails {
   private final String email;
   private final String passwordHash;
   private final String role;
-  private final boolean forcePasswordChange;
 
-  public UserPrincipal(UUID id, String email, String passwordHash, String role, boolean forcePasswordChange) {
+  public UserPrincipal(UUID id, String email, String passwordHash, String role) {
     this.id = id;
     this.email = email;
     this.passwordHash = passwordHash;
     this.role = role;
-    this.forcePasswordChange = forcePasswordChange;
   }
 
   @Override
@@ -39,9 +37,5 @@ public class UserPrincipal implements UserDetails {
   @Override
   public String getUsername() {
     return email;
-  }
-
-  public boolean getForcePasswordChange() {
-    return this.forcePasswordChange;
   }
 }

@@ -15,7 +15,7 @@
 	<description>Virtual Pet platform — backend service</description>
 
 	<properties>
-		<java.version>22</java.version>
+		<java.version>25</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
 		<!-- Plugin versions -->
@@ -42,10 +42,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -119,11 +115,6 @@
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>3.0.3</version>
-		</dependency>
-		<dependency>
-  			<groupId>software.amazon.awssdk</groupId>
-  			<artifactId>s3</artifactId>
-  			<version>2.25.0</version>
 		</dependency>
 
 		<!-- <dependency>
@@ -214,7 +205,7 @@
 									<version>[3.9.0,)</version>
 								</requireMavenVersion>
 								<requireJavaVersion>
-									<version>[22,)</version>
+									<version>[25,)</version>
 								</requireJavaVersion>
 								<banDuplicatePomDependencyVersions/>
 								<!-- Enable once known divergences are pinned: -->

@@ -1,7 +1,6 @@
 package com.virtualpet.common.config;
 
 import com.virtualpet.common.security.JwtAuthenticationFilter;
-import com.virtualpet.common.security.ForcePasswordChangeFilter;
 import com.virtualpet.common.security.ProblemDetailEntryPoints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -24,7 +23,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
-  private final ForcePasswordChangeFilter forcePasswordChangeFilter;
   private final ProblemDetailEntryPoints problemEntryPoints;
 
   @Bean
@@ -50,30 +48,18 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(
                         HttpMethod.POST,
-                        "/api/v1/auth/**",
-                        "/api/v1/backoffice/auth/login",
-                        "/api/v1/customers/register",
-                        "/api/v1/customers/login")
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/register/customer")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**")
                     .permitAll()
                     .requestMatchers(
                         HttpMethod.POST, "/api/v1/payments/webhook/**", "/api/v1/fake-provider/**")
                     .permitAll()
-                    .requestMatchers("/api/v1/cart/**")
-                    .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/v1/backoffice/auth/me")
-                    .hasAnyRole("EMPLOYEE", "ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/api/v1/customers/auth/me")
-                    .hasRole("CUSTOMER")
-                    .requestMatchers(HttpMethod.POST, "/api/v1/checkout")
-                    .hasRole("CUSTOMER")
-                    .requestMatchers(HttpMethod.GET, "/api/v1/orders", "/api/v1/orders/{id}")
-                    .hasAnyRole("CUSTOMER", "EMPLOYEE")
                     .anyRequest()
                     .authenticated())
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterAfter(forcePasswordChangeFilter, JwtAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }
 
