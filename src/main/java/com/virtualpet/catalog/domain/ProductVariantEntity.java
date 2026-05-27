@@ -43,6 +43,6 @@ public class ProductVariantEntity {
   @Column(nullable = false)
   private int stock;
 
-  @Column(name = "image_url")
+  @Column(name = "image_path")
   private String imageUrl;
 }
