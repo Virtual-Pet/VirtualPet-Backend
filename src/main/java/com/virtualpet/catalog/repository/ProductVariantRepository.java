@@ -1,5 +1,6 @@
 package com.virtualpet.catalog.repository;
 
+import com.virtualpet.catalog.domain.ProductVariantEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,11 +10,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.virtualpet.catalog.domain.ProductVariantEntity;
-
 public interface ProductVariantRepository extends JpaRepository<ProductVariantEntity, UUID> {
 
   List<ProductVariantEntity> findByProductId(UUID productId);
+
+  List<ProductVariantEntity> findByProductIdIn(java.util.Collection<UUID> productIds);
 
   long countByProductId(UUID productId);
 
@@ -29,9 +30,14 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariantEn
             """)
   Optional<ProductVariantEntity> findBySkuWithProduct(@Param("sku") String sku);
 
-  @Modifying(clearAutomatically = true)
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Transactional
   @Query(
       "UPDATE ProductVariantEntity v SET v.stock = v.stock - :qty WHERE v.id = :id AND v.stock >= :qty")
   int decrementStock(@Param("id") UUID id, @Param("qty") int qty);
+
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
+  @Transactional
+  @Query("UPDATE ProductVariantEntity v SET v.stock = v.stock + :qty WHERE v.id = :id")
+  int incrementStock(@Param("id") UUID id, @Param("qty") int qty);
 }

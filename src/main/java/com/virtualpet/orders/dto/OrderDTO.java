@@ -1,60 +1,52 @@
 package com.virtualpet.orders.dto;
 
-import com.virtualpet.orders.domain.ShippingAddress;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.virtualpet.orders.domain.Address;
+import com.virtualpet.orders.domain.OrderStatus;
+import com.virtualpet.orders.domain.PaymentStatus;
+import com.virtualpet.shipments.domain.ShipmentStatus;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/** Wire DTOs for /orders. Map 1:1 to the OpenAPI schemas. */
 public final class OrderDTO {
 
-  public record CreateOrderRequest(
-      String contactName,
-      String contactLastname,
-      String contactEmail,
-      String contactPhone,
-      ShippingAddress shippingAddress,
-      List<OrderItemRequest> items) {}
+  private OrderDTO() {}
 
-  public record OrderItemRequest(
-      UUID productVariantId, String sku, String name, BigDecimal unitPrice, Integer quantity) {}
+  public record OrderSummaryDTO(
+      UUID orderId,
+      OrderStatus status,
+      BigDecimal total,
+      String currency,
+      Instant createdAt,
+      UUID shipmentId) {}
 
-  public record OrderResponse(UUID orderId, String status, BigDecimal total) {}
+  public record OrderLineItemDTO(
+      UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {}
 
-  public record CheckoutRequest(
-      String contactName,
-      String contactLastname,
-      String contactEmail,
-      String contactPhone,
-      ShippingAddress shippingAddress) {}
+  public record OrderTotalsDTO(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
 
-  public record CheckoutResponse(
-      String orderId, String status, java.math.BigDecimal total, String paymentUrl) {}
+  public record OrderShipmentRefDTO(UUID shipmentId, ShipmentStatus status) {}
 
-  public record OrderDetailResponse(
-      String orderId,
-      String status,
-      java.math.BigDecimal total,
-      String createdAt,
-      ShippingAddress shippingAddress,
-      String contactName,
-      String contactLastname,
-      String contactEmail,
-      String contactPhone,
-      java.util.List<OrderItemDetail> items) {}
+  public record OrderResponseDTO(
+      UUID orderId,
+      UUID customerId,
+      OrderStatus status,
+      List<OrderLineItemDTO> lineItems,
+      OrderTotalsDTO totals,
+      String currency,
+      Address shippingAddress,
+      OrderShipmentRefDTO shipment,
+      Instant createdAt) {}
 
-  public record OrderItemDetail(
-      String variantId,
-      String sku,
-      String productName,
-      java.math.BigDecimal unitPrice,
-      int quantity,
-      java.math.BigDecimal subtotal) {}
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record RefundSummaryDTO(UUID paymentId, PaymentStatus status) {}
 
-  public record OrderSummaryResponse(
-      String orderId,
-      String status,
-      java.math.BigDecimal total,
-      String createdAt,
-      String contactName,
-      String contactEmail) {}
+  public record OrderCancellationDTO(
+      UUID orderId, OrderStatus status, OrderShipmentRefDTO shipment, RefundSummaryDTO refund) {}
+
+  public record CancelOrderRequestDTO(@Size(max = 200) String reason) {}
 }

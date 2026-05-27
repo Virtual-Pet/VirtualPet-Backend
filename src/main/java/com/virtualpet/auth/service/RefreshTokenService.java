@@ -90,6 +90,32 @@ public class RefreshTokenService {
     }
 
     /**
+     * Valida un refresh token y retorna el usuario asociado.
+     * Método helper para compatibilidad con pruebas.
+     */
+    @Transactional(readOnly = true)
+    public UserEntity verifyExpiration(String plainToken) {
+        return verifyAndGetUser(plainToken);
+    }
+
+    /**
+     * Revoca un refresh token específico en caso de estar activo.
+     * No falla si el token ya fue revocado o es desconocido.
+     */
+    @Transactional
+    public void revokeByPlainToken(String plainToken) {
+        String tokenHash = hashToken(plainToken);
+        refreshTokenRepository
+            .findByTokenHash(tokenHash)
+            .ifPresent(token -> {
+                if (!token.getRevoked()) {
+                    token.setRevoked(true);
+                    refreshTokenRepository.save(token);
+                }
+            });
+    }
+
+    /**
      * Revoca todos los refresh tokens activos de un usuario.
      * Se usa cuando:
      * - El usuario cambia contraseña

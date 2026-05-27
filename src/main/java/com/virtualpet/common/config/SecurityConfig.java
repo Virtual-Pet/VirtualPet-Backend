@@ -2,6 +2,7 @@ package com.virtualpet.common.config;
 
 import com.virtualpet.common.security.JwtAuthenticationFilter;
 import com.virtualpet.common.security.ForcePasswordChangeFilter;
+import com.virtualpet.common.security.ProblemDetailEntryPoints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,7 @@ public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final ForcePasswordChangeFilter forcePasswordChangeFilter;
+  private final ProblemDetailEntryPoints problemEntryPoints;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -31,16 +33,20 @@ public class SecurityConfig {
         .csrf(csrf -> csrf.disable())
         .headers(headers -> headers.frameOptions(frame -> frame.disable()))
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(problemEntryPoints.authenticationEntryPoint())
+                    .accessDeniedHandler(problemEntryPoints.accessDeniedHandler()))
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
-                        "/test",
-                        "/api/v1/ping",
                         "/actuator/**",
                         "/swagger-ui/**",
                         "/api-docs/**",
                         "/v3/api-docs/**",
                         "/h2-console/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/health")
                     .permitAll()
                     .requestMatchers(
                         HttpMethod.POST,
@@ -50,15 +56,10 @@ public class SecurityConfig {
                         "/api/v1/customers/register",
                         "/api/v1/customers/login")
                     .permitAll()
-                    .requestMatchers(
-                        HttpMethod.GET,
-                        "/api/v1/products",
-                        "/api/v1/products/**",
-                        "/api/v1/categories",
-                        "/api/v1/variants/**")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**")
                     .permitAll()
                     .requestMatchers(
-                        HttpMethod.POST, "/api/v1/webhooks/**", "/api/v1/checkout/mock/**")
+                        HttpMethod.POST, "/api/v1/payments/webhook/**", "/api/v1/fake-provider/**")
                     .permitAll()
                     .requestMatchers("/api/v1/cart/**")
                     .permitAll()

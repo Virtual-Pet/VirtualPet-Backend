@@ -20,7 +20,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(schema = "logistics", name = "shipments")
+@Table(schema = "shipments", name = "shipments")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -45,7 +45,7 @@ public class ShipmentEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   @Builder.Default
-  private ShipmentStatus status = ShipmentStatus.PENDING;
+  private ShipmentStatus status = ShipmentStatus.CONFIRMED;
 
   @Column(nullable = false)
   @Builder.Default

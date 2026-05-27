@@ -1,31 +1,77 @@
 package com.virtualpet.orders.controller;
 
-import com.virtualpet.orders.dto.OrderDTO.CheckoutRequest;
-import com.virtualpet.orders.dto.OrderDTO.CheckoutResponse;
-import com.virtualpet.orders.service.CheckoutService;
 import com.virtualpet.common.security.UserPrincipal;
+import com.virtualpet.orders.dto.CheckoutDTO.CheckoutSessionResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.PaymentIntentResponseDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.SetShippingAddressRequestDTO;
+import com.virtualpet.orders.service.CheckoutSessionService;
+import com.virtualpet.orders.service.CheckoutSessionService.StartResult;
+import com.virtualpet.orders.service.PaymentService;
+import com.virtualpet.orders.service.PaymentService.ConfirmOutcome;
+import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Checkout sessions + payment intent + confirmation endpoints. All require CUSTOMER role. */
 @RestController
-@RequestMapping("/api/v1/checkout")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('CUSTOMER')")
 public class CheckoutController {
 
-  private final CheckoutService checkoutService;
+  private final CheckoutSessionService sessionService;
+  private final PaymentService paymentService;
 
-  @PostMapping
-  public ResponseEntity<CheckoutResponse> checkout(
+  @PostMapping("/cart/checkout")
+  public ResponseEntity<CheckoutSessionResponseDTO> startCheckout(
+      @AuthenticationPrincipal UserPrincipal currentUser) {
+    StartResult result = sessionService.startCheckout(currentUser.getId());
+    HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
+    return ResponseEntity.status(status).body(result.response());
+  }
+
+  @GetMapping("/checkout/sessions/{id}")
+  public CheckoutSessionResponseDTO getSession(
+      @AuthenticationPrincipal UserPrincipal currentUser, @PathVariable UUID id) {
+    return sessionService.getSession(id, currentUser.getId());
+  }
+
+  @PutMapping("/checkout/sessions/{id}/shipping-address")
+  public CheckoutSessionResponseDTO setShippingAddress(
       @AuthenticationPrincipal UserPrincipal currentUser,
-      @RequestHeader(value = "X-Cart-Session", required = false, defaultValue = "anonymous")
-          String cartSession,
-      @RequestBody CheckoutRequest request) {
-    return ResponseEntity.ok(checkoutService.checkout(currentUser.getId(), cartSession, request));
+      @PathVariable UUID id,
+      @Valid @RequestBody SetShippingAddressRequestDTO request) {
+    return sessionService.setShippingAddress(id, currentUser.getId(), request);
+  }
+
+  @PostMapping("/checkout/sessions/{id}/payment-intents")
+  @org.springframework.web.bind.annotation.ResponseStatus(HttpStatus.CREATED)
+  public PaymentIntentResponseDTO createIntent(
+      @AuthenticationPrincipal UserPrincipal currentUser,
+      @PathVariable UUID id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey) {
+    return paymentService.createIntent(id, currentUser.getId(), idempotencyKey);
+  }
+
+  @PostMapping("/checkout/sessions/{id}/confirm")
+  public ResponseEntity<OrderConfirmationResponseDTO> confirm(
+      @AuthenticationPrincipal UserPrincipal currentUser,
+      @PathVariable UUID id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey) {
+    ConfirmOutcome outcome = paymentService.confirm(id, currentUser.getId(), idempotencyKey);
+    return ResponseEntity.status(outcome.status()).body(outcome.body());
   }
 }

@@ -1,12 +1,7 @@
 package com.virtualpet.orders.domain;
 
+/** Spec-aligned order lifecycle: confirmed or cancelled (granular tracking lives on Shipment). */
 public enum OrderStatus {
-  PENDING_PAYMENT,
-  PAID,
-  IN_PREPARATION,
-  PREPARED,
-  SHIPPED,
-  DELIVERED,
-  SHIPPING_FAILED,
-  CANCELED
+  CONFIRMED,
+  CANCELLED
 }

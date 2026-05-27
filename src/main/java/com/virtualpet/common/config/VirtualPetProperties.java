@@ -59,7 +59,7 @@ public class VirtualPetProperties {
     private String frontendUrl = "http://localhost:3000";
   }
 
-  @Getter
+   @Getter
   @Setter
   public static class Mail {
     /** Dirección remitente (normalmente igual a GMAIL_USERNAME). */

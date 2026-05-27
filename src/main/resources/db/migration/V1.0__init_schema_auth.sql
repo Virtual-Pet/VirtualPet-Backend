@@ -157,4 +157,3 @@ CREATE UNIQUE INDEX idx_dir_main ON auth.addresses (user_id) WHERE is_default = 
 
 CREATE INDEX idx_sesion_user_id ON auth.refresh_token(user_id);
 CREATE INDEX idx_refresh_active ON auth.refresh_token (user_id, expires_at) WHERE revoked = FALSE;
-

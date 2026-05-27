@@ -16,7 +16,7 @@ RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline
 COPY src/ src/
 RUN ./mvnw -B -q -DskipTests clean package \
     && mkdir -p target/extracted \
-    && java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
+    && java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destination target/extracted
 
 ############################
 # Runtime stage

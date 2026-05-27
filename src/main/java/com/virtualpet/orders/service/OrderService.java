@@ -1,20 +1,30 @@
 package com.virtualpet.orders.service;
 
-import com.virtualpet.orders.domain.OrderEntity;
-import com.virtualpet.orders.domain.OrderItemEntity;
-import com.virtualpet.orders.domain.OrderStatus;
-import com.virtualpet.orders.dto.OrderDTO.CreateOrderRequest;
-import com.virtualpet.orders.dto.OrderDTO.OrderDetailResponse;
-import com.virtualpet.orders.dto.OrderDTO.OrderItemDetail;
-import com.virtualpet.orders.dto.OrderDTO.OrderItemRequest;
-import com.virtualpet.orders.dto.OrderDTO.OrderResponse;
-import com.virtualpet.orders.dto.OrderDTO.OrderSummaryResponse;
-import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.common.exception.ApiException;
+import com.virtualpet.common.pagination.Cursor;
+import com.virtualpet.common.pagination.CursorCodec;
+import com.virtualpet.common.pagination.CursorPage;
+import com.virtualpet.orders.domain.OrderEntity;
+import com.virtualpet.orders.domain.OrderStatus;
+import com.virtualpet.orders.dto.OrderDTO.OrderCancellationDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderLineItemDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderResponseDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderShipmentRefDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderSummaryDTO;
+import com.virtualpet.orders.dto.OrderDTO.OrderTotalsDTO;
+import com.virtualpet.orders.repository.OrderRepository;
+import com.virtualpet.orders.spec.OrderSpecifications;
+import com.virtualpet.shipments.domain.ShipmentEntity;
+import com.virtualpet.shipments.repository.ShipmentRepository;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,97 +33,140 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderService {
 
+  private static final String CURRENCY = "ARS";
+
   private final OrderRepository orderRepository;
+  private final ShipmentRepository shipmentRepository;
+  private final CancelOrchestrator cancelOrchestrator;
+  private final CursorCodec cursorCodec;
 
-  @Transactional
-  public OrderResponse createOrder(UUID currentUserId, CreateOrderRequest request) {
+  /* ---------- List ---------- */
 
-    // Instanciamos la orden base
-    OrderEntity order =
-        OrderEntity.builder()
-            .userId(currentUserId)
-            .contactName(request.contactName())
-            .contactLastname(request.contactLastname())
-            .contactEmail(request.contactEmail())
-            .contactPhone(request.contactPhone())
-            .shippingAddress(request.shippingAddress())
-            .status(OrderStatus.PENDING_PAYMENT)
-            .shippingAttempts((short) 0)
-            .build();
+  /**
+   * Lists orders with cursor pagination. A CUSTOMER caller is restricted to their own orders;
+   * EMPLOYEE/ADMIN see every order and may filter by {@code userFilter}.
+   */
+  @Transactional(readOnly = true)
+  public CursorPage<OrderSummaryDTO> list(
+      UUID callerId,
+      boolean isCustomer,
+      OrderStatus status,
+      UUID userFilter,
+      String cursor,
+      int limit) {
+    int effectiveLimit = clampLimit(limit);
+    Cursor decoded = cursorCodec.decode(cursor);
 
-    // Procesamos los items y calculamos el total internamente
-    BigDecimal grandTotal = BigDecimal.ZERO;
+    UUID effectiveUserFilter = isCustomer ? callerId : userFilter;
 
-    for (OrderItemRequest itemReq : request.items()) {
-      BigDecimal subtotal = itemReq.unitPrice().multiply(BigDecimal.valueOf(itemReq.quantity()));
-      grandTotal = grandTotal.add(subtotal);
+    Specification<OrderEntity> spec =
+        Specification.allOf(
+            Stream.of(
+                    OrderSpecifications.byUser(effectiveUserFilter),
+                    OrderSpecifications.byStatus(status),
+                    OrderSpecifications.afterCursor(decoded))
+                .filter(Objects::nonNull)
+                .toList());
 
-      OrderItemEntity item =
-          OrderItemEntity.builder()
-              .productVariantId(itemReq.productVariantId())
-              .skuSnapshot(itemReq.sku())
-              .nameSnapshot(itemReq.name())
-              .unitPrice(itemReq.unitPrice())
-              .quantity(itemReq.quantity())
-              .subtotal(subtotal)
-              .build();
+    Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+    List<OrderEntity> rows =
+        orderRepository.findAll(spec, PageRequest.of(0, effectiveLimit + 1, sort)).getContent();
 
-      order.addItem(item); // Esto asocia el item a la orden automáticamente
+    boolean hasMore = rows.size() > effectiveLimit;
+    if (hasMore) {
+      rows = rows.subList(0, effectiveLimit);
     }
 
-    order.setTotal(grandTotal);
+    List<OrderSummaryDTO> data = rows.stream().map(this::toSummary).toList();
 
-    OrderEntity savedOrder = orderRepository.save(order);
-
-    return new OrderResponse(
-        savedOrder.getId(), savedOrder.getStatus().name(), savedOrder.getTotal());
+    String nextCursor =
+        hasMore
+            ? cursorCodec.encode(Cursor.of(rows.getLast().getCreatedAt(), rows.getLast().getId()))
+            : null;
+    return CursorPage.of(data, effectiveLimit, nextCursor);
   }
 
-  @Transactional(readOnly = true)
-  public List<OrderSummaryResponse> listByUser(UUID userId) {
-    return orderRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-        .map(
-            o ->
-                new OrderSummaryResponse(
-                    o.getId().toString(),
-                    o.getStatus().name(),
-                    o.getTotal(),
-                    o.getCreatedAt().toString(),
-                    o.getContactName() + " " + o.getContactLastname(),
-                    o.getContactEmail()))
-        .toList();
-  }
+  /* ---------- Detail ---------- */
 
   @Transactional(readOnly = true)
-  public OrderDetailResponse getByIdAndUser(UUID orderId, UUID userId) {
+  public OrderResponseDTO getById(UUID orderId, UUID callerId, boolean isCustomer) {
+    OrderEntity order = loadAccessible(orderId, callerId, isCustomer);
+    return toResponse(order);
+  }
+
+  /* ---------- Cancel ---------- */
+
+  @Transactional
+  public OrderCancellationDTO cancel(UUID orderId, UUID callerId, boolean isCustomer, String reason) {
+    OrderEntity order = loadAccessible(orderId, callerId, isCustomer);
+    return cancelOrchestrator.cancel(order, reason);
+  }
+
+  /* ---------- Internals ---------- */
+
+  private OrderEntity loadAccessible(UUID orderId, UUID callerId, boolean isCustomer) {
     OrderEntity order =
         orderRepository
-            .findByIdAndUserId(orderId, userId)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Pedido no encontrado"));
+            .findById(orderId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
+    if (isCustomer && !order.getUserId().equals(callerId)) {
+      throw new ApiException(HttpStatus.NOT_FOUND, "Order not found");
+    }
+    return order;
+  }
 
-    List<OrderItemDetail> items =
+  private int clampLimit(int requested) {
+    if (requested <= 0) {
+      return 20;
+    }
+    return Math.min(requested, 100);
+  }
+
+  private OrderSummaryDTO toSummary(OrderEntity order) {
+    UUID shipmentId =
+        shipmentRepository.findByOrderId(order.getId()).map(ShipmentEntity::getId).orElse(null);
+    return new OrderSummaryDTO(
+        order.getId(),
+        order.getStatus(),
+        order.getTotal(),
+        CURRENCY,
+        order.getCreatedAt(),
+        shipmentId);
+  }
+
+  private OrderResponseDTO toResponse(OrderEntity order) {
+    BigDecimal itemsTotal =
+        order.getItems().stream()
+            .map(i -> i.getSubtotal() == null ? BigDecimal.ZERO : i.getSubtotal())
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal shipping = order.getTotal().subtract(itemsTotal).max(BigDecimal.ZERO);
+
+    List<OrderLineItemDTO> lineItems =
         order.getItems().stream()
             .map(
                 i ->
-                    new OrderItemDetail(
-                        i.getProductVariantId().toString(),
-                        i.getSkuSnapshot(),
-                        i.getNameSnapshot(),
+                    new OrderLineItemDTO(
+                        i.getProductVariantId(),
+                        i.getQuantity() == null ? 0 : i.getQuantity(),
                         i.getUnitPrice(),
-                        i.getQuantity(),
                         i.getSubtotal()))
             .toList();
 
-    return new OrderDetailResponse(
-        order.getId().toString(),
-        order.getStatus().name(),
-        order.getTotal(),
-        order.getCreatedAt().toString(),
+    OrderShipmentRefDTO shipmentRef =
+        shipmentRepository
+            .findByOrderId(order.getId())
+            .map(s -> new OrderShipmentRefDTO(s.getId(), s.getStatus()))
+            .orElse(null);
+
+    return new OrderResponseDTO(
+        order.getId(),
+        order.getUserId(),
+        order.getStatus(),
+        lineItems,
+        new OrderTotalsDTO(itemsTotal, shipping, order.getTotal()),
+        CURRENCY,
         order.getShippingAddress(),
-        order.getContactName(),
-        order.getContactLastname(),
-        order.getContactEmail(),
-        order.getContactPhone(),
-        items);
+        shipmentRef,
+        order.getCreatedAt());
   }
 }

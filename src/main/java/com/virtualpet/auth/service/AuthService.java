@@ -169,4 +169,3 @@ public class AuthService {
             user.getForcePasswordChange());
     }
 }
-
