@@ -22,8 +22,8 @@ import tools.jackson.databind.ObjectMapper;
  *       used to resolve "reuse active session" without scanning keys
  * </ul>
  *
- * <p>Both share the same TTL (30 min from creation). The active pointer is cleared when the
- * session leaves PENDING/AWAITING_PAYMENT (PAID/CONFIRMED/FAILED).
+ * <p>Both share the same TTL (30 min from creation). The active pointer is cleared when the session
+ * leaves PENDING/AWAITING_PAYMENT (PAID/CONFIRMED/FAILED).
  */
 @Slf4j
 @Repository
@@ -47,8 +47,8 @@ public class CheckoutSessionRedisRepository {
   }
 
   /**
-   * Atomically claim the active-session slot for a user. Returns true if claimed, false if the
-   * user already had one.
+   * Atomically claim the active-session slot for a user. Returns true if claimed, false if the user
+   * already had one.
    */
   public boolean tryClaimActive(UUID userId, UUID sessionId, Duration ttl) {
     Boolean claimed =
@@ -107,7 +107,8 @@ public class CheckoutSessionRedisRepository {
     try {
       return objectMapper.writeValueAsString(session);
     } catch (JacksonException e) {
-      throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to serialize checkout session");
+      throw new ApiException(
+          HttpStatus.INTERNAL_SERVER_ERROR, "Failed to serialize checkout session");
     }
   }
 

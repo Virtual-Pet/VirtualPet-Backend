@@ -13,11 +13,11 @@ public class CategoryController {
 
   @GetMapping
   public ResponseEntity<List<Map<String, Object>>> list() {
-    return ResponseEntity.ok(List.of(
-        Map.of("id", "alimentos", "name", "Alimentos", "slug", "alimentos"),
-        Map.of("id", "juguetes", "name", "Juguetes", "slug", "juguetes"),
-        Map.of("id", "higiene", "name", "Higiene", "slug", "higiene"),
-        Map.of("id", "camas", "name", "Camas", "slug", "camas")
-    ));
+    return ResponseEntity.ok(
+        List.of(
+            Map.of("id", "alimentos", "name", "Alimentos", "slug", "alimentos"),
+            Map.of("id", "juguetes", "name", "Juguetes", "slug", "juguetes"),
+            Map.of("id", "higiene", "name", "Higiene", "slug", "higiene"),
+            Map.of("id", "camas", "name", "Camas", "slug", "camas")));
   }
 }
