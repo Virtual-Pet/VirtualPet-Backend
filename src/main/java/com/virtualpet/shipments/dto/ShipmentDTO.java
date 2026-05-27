@@ -12,7 +12,7 @@ public final class ShipmentDTO {
   private ShipmentDTO() {}
 
   public record ShipmentSummaryDTO(
-      UUID shipmentId, UUID orderId, ShipmentStatus status, Instant updatedAt) {}
+      UUID shipmentId, UUID orderId, ShipmentStatus status, Instant updatedAt, String contactName, String contactEmail, java.math.BigDecimal total) {}
 
   public record ShipmentStatusEventDTO(ShipmentStatus status, Instant at) {}
 
