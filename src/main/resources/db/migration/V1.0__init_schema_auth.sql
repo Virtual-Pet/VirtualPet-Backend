@@ -35,8 +35,6 @@ CREATE TABLE auth.users (
     password_hash           VARCHAR(255)  	NOT NULL,               -- bcrypt
 	role                    VARCHAR(30)   	NOT NULL DEFAULT 'ROLE_CUSTOMER',
     active                  BOOLEAN       	NOT NULL DEFAULT TRUE,
-    email_verified	        BOOLEAN		  	NOT NULL DEFAULT FALSE,
-    force_password_change   BOOLEAN         NOT NULL DEFAULT FALSE,
     created_at              TIMESTAMPTZ  	NOT NULL DEFAULT NOW(),
     updated_at  	        TIMESTAMPTZ  	NOT NULL DEFAULT NOW(),
     
@@ -47,43 +45,21 @@ CREATE TABLE auth.users (
 
 
 -- =============================================================================
--- TABLE: password_reset_tokens
--- 		Gestiona el "elvide mi contraseña". EL sistema genera un token de un solo
--- 		uso, lo envia por mail y lo marca como usado al cambiar contraseña.
--- =============================================================================
-CREATE TABLE auth.password_reset_tokens (
-	id              UUID          	NOT NULL DEFAULT gen_random_uuid(),
-    user_id			UUID		  	NOT NULL,
-	password_token	VARCHAR(255)  	NOT NULL,
-	expires_at		TIMESTAMPTZ	  	NOT NULL,
-	used_at			TIMESTAMPTZ	  	,
-	created_at		TIMESTAMPTZ		NOT NULL DEFAULT NOW(),
-	
-	CONSTRAINT pk_reset_tokens PRIMARY KEY (id),
-    CONSTRAINT fk_reset_user FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
-    CONSTRAINT uq_reset_token UNIQUE (password_token),
-    CONSTRAINT chk_reset_expires CHECK (expires_at > created_at),
-    CONSTRAINT chk_used_after_created CHECK (used_at IS NULL OR used_at >= created_at)
-);
-
-
--- =============================================================================
 -- TABLE: customers
 -- 		Solo existe si el usuario se registro. Si es Guest, no hay fila aca.
 --		Clientes del MarketPlace. Relación 1:1 con users.
 -- =============================================================================
 CREATE TABLE auth.customers (
-	user_id			UUID			NOT NULL,		
+	user_id			UUID			NOT NULL,
 	name			VARCHAR(50) 	NOT NULL,
 	lastname		VARCHAR(50)		NOT NULL,
-	dni				VARCHAR(20) 	NOT NULL,
+	dni				VARCHAR(20)		,
 	phone			VARCHAR(30)		,
 	created_at		TIMESTAMPTZ		NOT NULL DEFAULT NOW(),
-	
+
 	CONSTRAINT pk_customers PRIMARY KEY (user_id),
     CONSTRAINT fk_customers_user FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
-	CONSTRAINT uq_customer_dni UNIQUE (dni),
-	CONSTRAINT chk_dni_formato CHECK (dni ~ '^\d{7,8}$')
+	CONSTRAINT chk_dni_formato CHECK (dni IS NULL OR dni ~ '^\d{7,8}$')
 );
 
 
@@ -93,17 +69,16 @@ CREATE TABLE auth.customers (
 --		Relación 1:1 con users. warehouse_id es ref lógica a schema logística.
 -- =============================================================================
 CREATE TABLE auth.employees (
-	user_id			UUID			NOT NULL, 
+	user_id			UUID			NOT NULL,
 	name			VARCHAR(50)		NOT NULL,
 	lastname		VARCHAR(50)		NOT NULL,
-	legajo			VARCHAR(50)		NOT NULL,
-	warehouse_id	INT				NOT NULL, 	-- Ref lógica a logistica.deposito(id). Sin FK real cross-schema
-												-- por diseño (independencia de módulos).
+	legajo			VARCHAR(50)		,
+	warehouse_id	INT				, 	-- Ref lógica a logistica.deposito(id). Sin FK real cross-schema
+										-- por diseño (independencia de módulos). Se completa por ADMIN tras el alta.
 	created_at 		TIMESTAMPTZ		NOT NULL DEFAULT NOW(),
-	
+
 	CONSTRAINT pk_employees PRIMARY KEY (user_id),
-    CONSTRAINT fk_employees_user FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
-    CONSTRAINT uq_employees_legajo UNIQUE (legajo)
+    CONSTRAINT fk_employees_user FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
 
 
@@ -157,3 +132,10 @@ CREATE UNIQUE INDEX idx_dir_main ON auth.addresses (user_id) WHERE is_default = 
 
 CREATE INDEX idx_sesion_user_id ON auth.refresh_token(user_id);
 CREATE INDEX idx_refresh_active ON auth.refresh_token (user_id, expires_at) WHERE revoked = FALSE;
+
+-- DNI/legajo son opcionales en el alta (se completan después). Los índices
+-- parciales preservan la unicidad para los valores presentes y permiten
+-- múltiples NULLs.
+CREATE UNIQUE INDEX uq_customer_dni_present ON auth.customers (dni) WHERE dni IS NOT NULL;
+CREATE UNIQUE INDEX uq_employees_legajo_present ON auth.employees (legajo) WHERE legajo IS NOT NULL;
+

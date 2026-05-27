@@ -1,8 +1,10 @@
 package com.virtualpet.auth.config;
 
+import com.virtualpet.auth.domain.CustomerEntity;
 import com.virtualpet.auth.domain.EmployeeEntity;
 import com.virtualpet.auth.domain.UserEntity;
 import com.virtualpet.auth.domain.enums.UserRole;
+import com.virtualpet.auth.repository.CustomerRepository;
 import com.virtualpet.auth.repository.EmployeeRepository;
 import com.virtualpet.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,70 +18,85 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@Profile("dev") // ⚠️ Clave: Evita que se creen estos usuarios en Producción
+@Profile("dev")
 public class DevDataSeeder implements ApplicationRunner {
 
   private final UserRepository userRepository;
+  private final CustomerRepository customerRepository;
   private final EmployeeRepository employeeRepository;
   private final PasswordEncoder passwordEncoder;
 
   @Override
   public void run(ApplicationArguments args) {
-    log.info("🌱 Iniciando verificación de usuarios de desarrollo...");
+    seedAdmin();
+    seedEmployee();
+    seedCustomer();
+    log.info("Dev users ready.");
+  }
 
-    String adminEmail = "admin@virtualpet.local";
-
-    // 1. Creación del SúperAdministrador (Si no existe)
-    if (userRepository.findByEmailIgnoreCase(adminEmail).isEmpty()) {
-      log.info("Súper Admin no encontrado. Creando credenciales iniciales...");
-
-      // A. Creamos la Identidad (Auth)
-      UserEntity adminUser =
-          UserEntity.builder()
-              .email(adminEmail)
-              .passwordHash(passwordEncoder.encode("admin123"))
-              .role(UserRole.ROLE_ADMIN)
-              .active(true)
-              .emailVerified(true)
-              .forcePasswordChange(
-                  false) // Lo dejamos en false para que puedas loguearte directo a probar
-              .build();
-
-      adminUser = userRepository.save(adminUser);
-
-      // B. Creamos el Perfil Físico (Backoffice)
-      EmployeeEntity adminProfile =
-          EmployeeEntity.builder()
-              .userId(adminUser.getId()) // Vinculación mediante UUID
-              .name("Súper")
-              .lastname("Administrador")
-              .legajo("ADM-0001")
-              .warehouseId(1) // Asumimos depósito central
-              .build();
-
-      employeeRepository.save(adminProfile);
-      log.info("✅ Admin creado: {} / admin123", adminEmail);
+  private void seedAdmin() {
+    String email = "admin@virtualpet.com";
+    if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+      return;
     }
+    UserEntity user =
+        userRepository.save(
+            UserEntity.builder()
+                .email(email)
+                .passwordHash(passwordEncoder.encode("admin1234"))
+                .role(UserRole.ROLE_ADMIN)
+                .active(true)
+                .build());
+    employeeRepository.save(
+        EmployeeEntity.builder()
+            .userId(user.getId())
+            .name("Super")
+            .lastname("Admin")
+            .legajo("ADM-0000")
+            .warehouseId(1)
+            .build());
+    log.info("Seeded admin {} / admin1234", email);
+  }
 
-    // 2. Mantenimiento de tus usuarios de prueba existentes
-    userRepository
-        .findByEmailIgnoreCase("staff@virtualpet.local")
-        .ifPresent(
-            u -> {
-              u.setRole(UserRole.ROLE_EMPLOYEE); // Ajustado a EMPLOYEE según tu nuevo enum
-              u.setPasswordHash(passwordEncoder.encode("staff123"));
-              userRepository.save(u);
-            });
+  private void seedEmployee() {
+    String email = "staff@virtualpet.com";
+    if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+      return;
+    }
+    UserEntity user =
+        userRepository.save(
+            UserEntity.builder()
+                .email(email)
+                .passwordHash(passwordEncoder.encode("staff1234"))
+                .role(UserRole.ROLE_EMPLOYEE)
+                .active(true)
+                .build());
+    employeeRepository.save(
+        EmployeeEntity.builder()
+            .userId(user.getId())
+            .name("Empleado")
+            .lastname("Demo")
+            .legajo("EMP-0001")
+            .warehouseId(1)
+            .build());
+    log.info("Seeded employee {} / staff1234", email);
+  }
 
-    userRepository
-        .findByEmailIgnoreCase("cliente@demo.local")
-        .ifPresent(
-            u -> {
-              u.setRole(UserRole.ROLE_CUSTOMER);
-              u.setPasswordHash(passwordEncoder.encode("cliente123"));
-              userRepository.save(u);
-            });
-
-    log.info("🌳 Usuarios de prueba listos para usar.");
+  private void seedCustomer() {
+    String email = "cliente1234@gmail.com";
+    if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+      return;
+    }
+    UserEntity user =
+        userRepository.save(
+            UserEntity.builder()
+                .email(email)
+                .passwordHash(passwordEncoder.encode("cliente1234"))
+                .role(UserRole.ROLE_CUSTOMER)
+                .active(true)
+                .build());
+    customerRepository.save(
+        CustomerEntity.builder().userId(user.getId()).name("Cliente").lastname("Demo").build());
+    log.info("Seeded customer {} / cliente1234", email);
   }
 }
