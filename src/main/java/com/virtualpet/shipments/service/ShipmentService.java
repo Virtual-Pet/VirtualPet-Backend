@@ -153,7 +153,9 @@ public class ShipmentService {
                       s.getUpdatedAt() == null ? s.getCreatedAt() : s.getUpdatedAt(),
                       cName,
                       cEmail,
-                      order != null ? order.getTotal() : java.math.BigDecimal.ZERO);
+                      order != null ? order.getTotal() : java.math.BigDecimal.ZERO,
+                      order != null ? order.getShippingAddress() : null);
+
                 })
             .toList();
 
