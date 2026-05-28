@@ -53,6 +53,28 @@ public class ConfirmOrchestrator {
   @Transactional
   public OrderConfirmationResponseDTO confirmPaidSession(
       CheckoutSession session, PaymentEntity payment) {
+    OrderConfirmationResponseDTO result = createOrder(session);
+    // Link the payment to the newly created order (idempotent: order may already exist).
+    orderRepository.findBySessionId(session.getId()).ifPresent(order -> {
+      if (payment.getOrderId() == null) {
+        payment.setOrderId(order.getId());
+        paymentRepository.save(payment);
+      }
+    });
+    return result;
+  }
+
+  /**
+   * Creates an order directly from a checkout session without requiring a payment entity.
+   * Used when the payment is handled externally (cash on delivery, bank transfer, etc.).
+   */
+  @Transactional
+  public OrderConfirmationResponseDTO placeOrder(CheckoutSession session) {
+    return createOrder(session);
+  }
+
+  /** Core order-creation logic shared by confirmPaidSession and placeOrder. */
+  private OrderConfirmationResponseDTO createOrder(CheckoutSession session) {
     var existing = orderRepository.findBySessionId(session.getId());
     if (existing.isPresent()) {
       OrderEntity order = existing.get();
@@ -63,7 +85,7 @@ public class ConfirmOrchestrator {
 
     if (session.getShippingAddress() == null) {
       throw new ApiException(
-          HttpStatus.CONFLICT, "Cannot confirm a session without a shipping address");
+          HttpStatus.CONFLICT, "Cannot place order without a shipping address");
     }
 
     Map<UUID, ProductVariantEntity> variants = fetchVariants(session.getLineItems());
@@ -109,16 +131,13 @@ public class ConfirmOrchestrator {
     shipmentService.recordInitialStatus(
         savedShipment.getId(), ShipmentStatus.CONFIRMED, session.getUserId());
 
-    payment.setOrderId(savedOrder.getId());
-    paymentRepository.save(payment);
-
     session.setStatus(SessionStatus.CONFIRMED);
     sessionService.save(session);
 
     cartService.clearCart(session.getUserId());
 
     log.info(
-        "Order confirmed: orderId={}, shipmentId={}, sessionId={}",
+        "Order placed: orderId={}, shipmentId={}, sessionId={}",
         savedOrder.getId(),
         savedShipment.getId(),
         session.getId());
