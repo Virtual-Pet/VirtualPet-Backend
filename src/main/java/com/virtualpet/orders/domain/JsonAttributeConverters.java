@@ -25,7 +25,25 @@ public final class JsonAttributeConverters {
 
     @Override
     public Address convertToEntityAttribute(String dbData) {
-      return dbData == null ? null : MAPPER.readValue(dbData, Address.class);
+      if (dbData == null || dbData.trim().isEmpty()) {
+        return null;
+      }
+      String trimmed = dbData.trim();
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        try {
+          return MAPPER.readValue(trimmed, Address.class);
+        } catch (Exception e) {
+          // Fall back to parse as flat string
+        }
+      }
+      
+      // Parse as flat string legacy data: e.g. "Av. Independencia 2345, Mar del Plata, BA, 7600"
+      String[] parts = trimmed.split(",");
+      String addressLine = parts.length > 0 ? parts[0].trim() : trimmed;
+      String city = parts.length > 1 ? parts[1].trim() : "";
+      String state = parts.length > 2 ? parts[2].trim() : "";
+      String postalCode = parts.length > 3 ? parts[3].trim() : "";
+      return new Address(addressLine, city, state, "Argentina", postalCode);
     }
   }
 }
