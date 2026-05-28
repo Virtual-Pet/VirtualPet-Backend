@@ -171,17 +171,14 @@ public class PaymentService {
       }
       case FAILED -> new ConfirmOutcome(HttpStatus.PAYMENT_REQUIRED, null);
       case PENDING, PROCESSING -> {
-        // For the mock provider, auto-approve the payment so the order is created
+        // Auto-approve any payment so the order is created
         // immediately without requiring a separate webhook call.
-        if ("fake".equals(payment.getProvider())) {
-          log.info("Auto-approving fake payment {} for session {}", payment.getId(), sessionId);
-          payment.setStatus(PaymentStatus.PAID);
-          paymentRepository.save(payment);
-          OrderConfirmationResponseDTO body =
-              confirmOrchestrator.confirmPaidSession(session, payment);
-          yield new ConfirmOutcome(HttpStatus.CREATED, body);
-        }
-        yield new ConfirmOutcome(HttpStatus.ACCEPTED, null);
+        log.info("Auto-approving payment {} for session {}", payment.getId(), sessionId);
+        payment.setStatus(PaymentStatus.PAID);
+        paymentRepository.save(payment);
+        OrderConfirmationResponseDTO body =
+            confirmOrchestrator.confirmPaidSession(session, payment);
+        yield new ConfirmOutcome(HttpStatus.CREATED, body);
       }
       case REFUNDED -> new ConfirmOutcome(HttpStatus.CONFLICT, null);
     };
