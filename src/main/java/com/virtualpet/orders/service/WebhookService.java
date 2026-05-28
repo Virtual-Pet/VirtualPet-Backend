@@ -5,6 +5,7 @@ import com.virtualpet.orders.domain.CheckoutSession;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.PaymentStatus;
 import com.virtualpet.orders.domain.SessionStatus;
+import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.orders.repository.PaymentRepository;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WebhookService {
 
   private final PaymentRepository paymentRepository;
+  private final OrderRepository orderRepository;
   private final CheckoutSessionService sessionService;
   private final ConfirmOrchestrator confirmOrchestrator;
 
@@ -74,7 +76,37 @@ public class WebhookService {
     if (payment.getSessionId() == null) {
       return;
     }
-    CheckoutSession session = sessionService.loadById(payment.getSessionId());
+
+    // Load the checkout session from Redis. It may have expired (TTL 30 min) if the user took
+    // long between intent creation and payment. In that case we skip the session-state update
+    // but still run the confirm orchestrator so the order is created (it is idempotent).
+    Optional<CheckoutSession> maybeSession;
+    try {
+      maybeSession = Optional.of(sessionService.loadById(payment.getSessionId()));
+    } catch (ApiException ex) {
+      if (ex.getStatus() == HttpStatus.NOT_FOUND) {
+        log.warn("Session {} expired from Redis when webhook arrived for payment {}; "
+            + "attempting confirm via DB order lookup", payment.getSessionId(), payment.getId());
+        maybeSession = Optional.empty();
+      } else {
+        throw ex;
+      }
+    }
+
+    if (maybeSession.isEmpty()) {
+      // Session is gone — if order already exists we are done (idempotent), otherwise we
+      // cannot reconstruct it without the line items stored in the session.
+      boolean orderExists = orderRepository.findBySessionId(payment.getSessionId()).isPresent();
+      if (orderExists) {
+        log.info("Order already exists for expired session {}; skipping", payment.getSessionId());
+      } else {
+        log.error("Session {} expired and no order exists — order cannot be created by webhook. "
+            + "User must re-checkout.", payment.getSessionId());
+      }
+      return;
+    }
+
+    CheckoutSession session = maybeSession.get();
     switch (newStatus) {
       case PAID -> {
         if (session.getStatus() == SessionStatus.AWAITING_PAYMENT) {

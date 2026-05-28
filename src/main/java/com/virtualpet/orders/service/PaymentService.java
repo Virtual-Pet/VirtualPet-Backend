@@ -4,14 +4,19 @@ import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.common.idempotency.IdempotencyKeyService;
 import com.virtualpet.orders.domain.CheckoutSession;
+import com.virtualpet.orders.domain.OrderEntity;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.PaymentStatus;
 import com.virtualpet.orders.domain.SessionStatus;
 import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponseDTO;
 import com.virtualpet.orders.dto.CheckoutDTO.PaymentIntentResponseDTO;
 import com.virtualpet.orders.dto.CheckoutDTO.PaymentResponseDTO;
+import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.orders.repository.PaymentRepository;
+import com.virtualpet.shipments.domain.ShipmentEntity;
+import com.virtualpet.shipments.repository.ShipmentRepository;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +34,8 @@ public class PaymentService {
   private static final Duration IDEMPOTENCY_TTL = Duration.ofHours(24);
 
   private final PaymentRepository paymentRepository;
+  private final OrderRepository orderRepository;
+  private final ShipmentRepository shipmentRepository;
   private final CheckoutSessionService sessionService;
   private final ConfirmOrchestrator confirmOrchestrator;
   private final IdempotencyKeyService idempotencyKeys;
@@ -116,7 +123,38 @@ public class PaymentService {
   }
 
   private ConfirmOutcome confirmInternal(UUID sessionId, UUID userId) {
-    CheckoutSession session = sessionService.loadOwned(sessionId, userId);
+    // Fast path: try to load session from Redis.
+    // If the session has expired from Redis (TTL elapsed or server restart) but the order was
+    // already created (webhook fired before expiry), we fall back to the DB to return the
+    // existing order idempotently rather than surfacing a 404 to the user.
+    Optional<CheckoutSession> maybeSession;
+    try {
+      maybeSession = Optional.of(sessionService.loadOwned(sessionId, userId));
+    } catch (ApiException ex) {
+      if (ex.getStatus() == HttpStatus.NOT_FOUND) {
+        log.warn("Session {} not found in Redis (may have expired); checking DB for existing order",
+            sessionId);
+        maybeSession = Optional.empty();
+      } else {
+        throw ex;
+      }
+    }
+
+    // If the session is gone from Redis, check whether an order already exists.
+    if (maybeSession.isEmpty()) {
+      return orderRepository.findBySessionId(sessionId)
+          .map(order -> {
+            UUID shipmentId = shipmentRepository.findByOrderId(order.getId())
+                .map(ShipmentEntity::getId).orElse(null);
+            OrderConfirmationResponseDTO body =
+                new OrderConfirmationResponseDTO(order.getId(), shipmentId, order.getStatus().name());
+            return new ConfirmOutcome(HttpStatus.CREATED, body);
+          })
+          .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+              "Checkout session expired and no order was found for it"));
+    }
+
+    CheckoutSession session = maybeSession.get();
     PaymentEntity payment =
         paymentRepository
             .findBySessionId(sessionId)
