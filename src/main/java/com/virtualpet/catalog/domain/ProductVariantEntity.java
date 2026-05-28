@@ -47,7 +47,7 @@ public class ProductVariantEntity {
   @Column(name = "stock_min", nullable = false)
   private int stockMin;
 
-  @Column(name = "image_url")
+  @Column(name = "image_path")
   private String imageUrl;
 
   @Column(nullable = false)
