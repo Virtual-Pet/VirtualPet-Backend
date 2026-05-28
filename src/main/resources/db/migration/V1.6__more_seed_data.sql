@@ -94,7 +94,7 @@ INSERT INTO catalog.image_variants (id, product_variant_id, image_path, is_main,
 -- =============================================================================
 INSERT INTO shipments.warehouses (name, city, state, zip_code) VALUES
 ('Sucursal CABA Norte',      'Ciudad Autónoma de Buenos Aires', 'CABA',    '1428'),
-('Sucursal Mar del Plata', 'Buenos Aires', 'Buenos Aires', '7600');
+('Sucursal Córdoba Capital', 'Córdoba',                         'Córdoba', '5000');
 
 
 -- =============================================================================
