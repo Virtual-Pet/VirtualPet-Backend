@@ -44,14 +44,10 @@ public class ProductVariantEntity {
   @Column(nullable = false)
   private int stock;
 
-<<<<<<< HEAD
-  @Column(name = "image_path")
-=======
   @Column(name = "stock_min", nullable = false)
   private int stockMin;
 
   @Column(name = "image_url")
->>>>>>> develop
   private String imageUrl;
 
   @Column(nullable = false)
