@@ -9,7 +9,9 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID> {
 
   Optional<PaymentEntity> findByProviderPaymentId(String providerPaymentId);
 
-  Optional<PaymentEntity> findBySessionId(UUID sessionId);
+  /** Returns the most recent payment for a session. Handles edge-cases where multiple
+   *  payment intents were created for the same session (e.g. user retried checkout). */
+  Optional<PaymentEntity> findFirstBySessionIdOrderByCreatedAtDesc(UUID sessionId);
 
   Optional<PaymentEntity> findByOrderId(UUID orderId);
 }

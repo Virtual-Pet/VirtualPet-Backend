@@ -155,11 +155,13 @@ public class PaymentService {
     }
 
     CheckoutSession session = maybeSession.get();
-    PaymentEntity payment =
-        paymentRepository
-            .findBySessionId(sessionId)
-            .orElseThrow(
-                () -> new ApiException(HttpStatus.CONFLICT, "No payment intent for this session"));
+    PaymentEntity payment = paymentRepository.findFirstBySessionIdOrderByCreatedAtDesc(sessionId).orElse(null);
+
+    // No payment intent: order placed without upfront payment (cash, transfer, etc.)
+    if (payment == null) {
+      OrderConfirmationResponseDTO body = confirmOrchestrator.placeOrder(session);
+      return new ConfirmOutcome(HttpStatus.CREATED, body);
+    }
 
     return switch (payment.getStatus()) {
       case PAID -> {
