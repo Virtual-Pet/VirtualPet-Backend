@@ -1,0 +1,62 @@
+services:
+  backend:
+    image: 705690519921.dkr.ecr.us-east-2.amazonaws.com/virtualpet-backend:latest
+    expose:
+      - "8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET: CLAVE_LARGA_ALEATORIA_MINIMO_32_CARACTERES
+      DB_URL: jdbc:postgresql://virtualpetdb.cjwokymoug62.us-east-2.rds.amazonaws.com/virtualpetdb
+      DB_USER: virtualpet
+      DB_PASSWORD: VirtualPetGrupo3
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AWS_BUCKET_NAME: amzn-s3-virtualpet
+      AWS_REGION: us-east-2
+      CORS_ORIGINS: http://3.144.149.124,http://18.226.20.103
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vp_net
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vp_net
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vp_net
+
+volumes:
+  redis_data:
+
+networks:
+  vp_net:
+    driver: bridge
