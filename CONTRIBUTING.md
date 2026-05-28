@@ -4,7 +4,7 @@ Thanks for taking the time to contribute.
 
 ## Branching model — Gitflow
 
-This repository follows **Gitflow**. There are two long-lived branches and
+This repository follows **[Gitflow](https://nvie.com/posts/a-successful-git-branching-model/)**. There are two long-lived branches and
 three categories of short-lived branches.
 
 ### Long-lived branches

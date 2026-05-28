@@ -117,6 +117,12 @@
 			<version>3.0.3</version>
 		</dependency>
 
+		<dependency>
+    		<groupId>software.amazon.awssdk</groupId>
+    		<artifactId>s3</artifactId>
+    		<version>2.25.0</version>
+		</dependency>
+
 		<!-- <dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -126,6 +132,18 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>docs/api</directory>
+				<targetPath>static</targetPath>
+				<includes>
+					<include>virtualpet-openapi.yaml</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

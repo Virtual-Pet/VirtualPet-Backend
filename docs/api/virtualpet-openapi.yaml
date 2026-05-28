@@ -260,6 +260,21 @@ paths:
         '304': { description: No modificado (revalidación con If-None-Match) }
         '422': { $ref: '#/components/responses/ValidationError' }
 
+  /products/facets:
+    get:
+      tags: [catalog]
+      summary: Facetas del catálogo
+      description: >
+        Listas auxiliares para los filtros del marketplace: tipos de mascota, categorías y marcas.
+        Endpoint público, sin paginación.
+      security: []
+      responses:
+        '200':
+          description: Facetas disponibles
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogFacets' }
+
   /products/{id}:
     get:
       tags: [catalog]
@@ -280,6 +295,21 @@ paths:
               schema: { $ref: '#/components/schemas/Product' }
         '304': { description: No modificado }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /categories:
+    get:
+      tags: [catalog]
+      summary: Listar categorías
+      description: Listado plano de categorías para navegación. Público.
+      security: []
+      responses:
+        '200':
+          description: Categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Category' }
 
   /cart:
     get:
@@ -433,7 +463,7 @@ paths:
       summary: Estado de un pago (polling)
       description: Estado normalizado del pago, agnóstico al proveedor. Complementa al webhook.
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
           description: Pago
@@ -521,7 +551,7 @@ paths:
       summary: Detalle de orden
       description: Line items, totales, dirección y shipment embebidos.
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
           description: Orden
@@ -540,7 +570,7 @@ paths:
         e inicio de reembolso (Payment→REFUNDED por webhook async). Único camino de cancelación,
         también para el backoffice. Solo si el envío está en CONFIRMED o PREPARED.
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: false
         content:
@@ -590,7 +620,7 @@ paths:
       summary: Detalle de envío
       description: Incluye historial de estados. El cliente solo ve el propio.
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
           description: Envío
@@ -601,12 +631,12 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
     patch:
       tags: [shipments]
-      summary: Avanzar estado del envío (EMPLOYEE)
+      summary: Avanzar estado del envío (EMPLOYEE / ADMIN)
       description: >
         Avanza por los estados de progreso (CONFIRMED→PREPARED→IN_TRANSIT→DELIVERED).
         No puede llevar a CANCELLED (eso va por /orders/{id}/cancel).
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
@@ -628,10 +658,18 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 
-  /health:
+  /actuator/health:
+    servers:
+      - url: https://api.virtualpet.com
+        description: Producción
+      - url: http://localhost:8080
+        description: Local
     get:
       tags: [health]
       summary: Disponibilidad
+      description: >
+        Expuesto por Spring Boot Actuator fuera del prefijo `/api/v1`. Incluye health groups
+        `liveness` y `readiness` (`/actuator/health/liveness`, `/actuator/health/readiness`).
       security: []
       responses:
         '200':
@@ -642,9 +680,9 @@ paths:
                 type: object
                 properties:
                   status: { type: string, examples: [UP] }
-                  dependencies:
+                  components:
                     type: object
-                    additionalProperties: { type: string }
+                    additionalProperties: true
         '503': { description: Alguna dependencia caída }
 
 components:
@@ -682,17 +720,17 @@ components:
       name: id
       in: path
       required: true
-      schema: { type: string }
+      schema: { type: string, format: uuid }
     SkuId:
       name: skuId
       in: path
       required: true
-      schema: { type: string }
+      schema: { type: string, format: uuid }
     SessionId:
       name: id
       in: path
       required: true
-      schema: { type: string }
+      schema: { type: string, format: uuid }
       description: checkoutSessionId
 
   headers:
@@ -796,14 +834,14 @@ components:
     UserSummary:
       type: object
       properties:
-        id: { type: string }
+        id: { type: string, format: uuid }
         email: { type: string, format: email }
         role: { $ref: '#/components/schemas/Role' }
 
     User:
       type: object
       properties:
-        id: { type: string }
+        id: { type: string, format: uuid }
         email: { type: string, format: email }
         firstName: { type: string }
         lastName: { type: string }
@@ -813,24 +851,60 @@ components:
       type: string
       enum: [CUSTOMER, EMPLOYEE, ADMIN]
 
-    ProductSummary:
+    Category:
       type: object
+      description: Categoría de catálogo (entrada de navegación).
       properties:
         id: { type: string }
         name: { type: string }
+        slug: { type: string }
+
+    CatalogFacets:
+      type: object
+      description: Facetas para los filtros del marketplace.
+      properties:
+        petTypes:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+        categories:
+          type: array
+          items: { $ref: '#/components/schemas/Category' }
+        brands:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+
+    ProductSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        brand: { type: [string, 'null'] }
         category: { type: string }
         petType: { type: string }
         basePrice: { $ref: '#/components/schemas/Money' }
-        thumbnail: { type: string, format: uri }
+        thumbnail: { type: [string, 'null'], format: uri }
+        active: { type: boolean }
 
     Product:
       type: object
       properties:
-        id: { type: string }
+        id: { type: string, format: uuid }
         name: { type: string }
-        description: { type: string }
+        description: { type: [string, 'null'] }
+        brand: { type: [string, 'null'] }
         category: { type: string }
         petType: { type: string }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
         images:
           type: array
           items: { type: string, format: uri }
@@ -841,25 +915,40 @@ components:
     Sku:
       type: object
       properties:
-        skuId: { type: string }
+        skuId: { type: string, format: uuid }
+        sku: { type: string }
         attributes:
           type: object
           additionalProperties: { type: string }
         price: { $ref: '#/components/schemas/Money' }
+        stock: { type: integer }
+        stockMin: { type: integer }
+        imageUrl: { type: [string, 'null'], format: uri }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
         available: { type: boolean }
 
     CartItem:
       type: object
       properties:
-        skuId: { type: string }
+        skuId: { type: string, format: uuid }
+        sku: { type: [string, 'null'] }
+        productId: { type: [string, 'null'], format: uuid }
+        productName: { type: [string, 'null'] }
+        brand: { type: [string, 'null'] }
+        attributes:
+          type: object
+          additionalProperties: { type: string }
+        imageUrl: { type: [string, 'null'], format: uri }
         quantity: { type: integer }
         unitPrice: { $ref: '#/components/schemas/Money' }
         subtotal: { $ref: '#/components/schemas/Money' }
+        available: { type: boolean }
 
     CartItemQuantity:
       type: object
       properties:
-        skuId: { type: string }
+        skuId: { type: string, format: uuid }
         quantity: { type: integer }
 
     Cart:
@@ -891,7 +980,7 @@ components:
     CheckoutSession:
       type: object
       properties:
-        checkoutSessionId: { type: string }
+        checkoutSessionId: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/SessionStatus' }
         lineItems:
           type: array
@@ -911,7 +1000,7 @@ components:
     PaymentIntent:
       type: object
       properties:
-        paymentId: { type: string }
+        paymentId: { type: string, format: uuid }
         provider: { type: string, examples: [fake] }
         providerPaymentId: { type: string }
         checkoutUrl: { type: string, format: uri }
@@ -922,13 +1011,13 @@ components:
     Payment:
       type: object
       properties:
-        paymentId: { type: string }
+        paymentId: { type: string, format: uuid }
         provider: { type: string }
         providerPaymentId: { type: string }
         status: { $ref: '#/components/schemas/PaymentStatus' }
         amount: { $ref: '#/components/schemas/Money' }
         currency: { $ref: '#/components/schemas/Currency' }
-        orderId: { type: [string, 'null'] }
+        orderId: { type: [string, 'null'], format: uuid }
 
     PaymentStatus:
       type: string
@@ -937,24 +1026,24 @@ components:
     OrderConfirmation:
       type: object
       properties:
-        orderId: { type: string }
-        shipmentId: { type: string }
+        orderId: { type: string, format: uuid }
+        shipmentId: { type: string, format: uuid }
         status: { type: string, examples: [CONFIRMED] }
 
     OrderCancellation:
       type: object
       properties:
-        orderId: { type: string }
+        orderId: { type: string, format: uuid }
         status: { type: string, examples: [CANCELLED] }
         shipment:
           type: object
           properties:
-            shipmentId: { type: string }
+            shipmentId: { type: string, format: uuid }
             status: { type: string, examples: [CANCELLED] }
         refund:
           type: object
           properties:
-            paymentId: { type: string }
+            paymentId: { type: string, format: uuid }
             status: { $ref: '#/components/schemas/PaymentStatus' }
 
     OrderStatus:
@@ -964,31 +1053,47 @@ components:
     OrderSummary:
       type: object
       properties:
-        orderId: { type: string }
+        orderId: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/OrderStatus' }
         total: { $ref: '#/components/schemas/Money' }
         currency: { $ref: '#/components/schemas/Currency' }
         createdAt: { type: string, format: date-time }
-        shipmentId: { type: string }
+        shipmentId: { type: string, format: uuid }
 
     Order:
       type: object
       properties:
-        orderId: { type: string }
-        customerId: { type: string }
+        orderId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/OrderStatus' }
         lineItems:
           type: array
-          items: { $ref: '#/components/schemas/CartItem' }
-        totals: { $ref: '#/components/schemas/Totals' }
+          items: { $ref: '#/components/schemas/OrderLineItem' }
+        totals: { $ref: '#/components/schemas/OrderTotals' }
         currency: { $ref: '#/components/schemas/Currency' }
         shippingAddress: { $ref: '#/components/schemas/Address' }
         shipment:
           type: object
           properties:
-            shipmentId: { type: string }
+            shipmentId: { type: string, format: uuid }
             status: { $ref: '#/components/schemas/ShipmentStatus' }
         createdAt: { type: string, format: date-time }
+
+    OrderLineItem:
+      type: object
+      description: Línea persistida en la orden (snapshot de precio al momento de confirmar).
+      properties:
+        skuId: { type: string, format: uuid }
+        quantity: { type: integer }
+        unitPrice: { $ref: '#/components/schemas/Money' }
+        subtotal: { $ref: '#/components/schemas/Money' }
+
+    OrderTotals:
+      type: object
+      properties:
+        items: { $ref: '#/components/schemas/Money' }
+        shipping: { $ref: '#/components/schemas/Money' }
+        grandTotal: { $ref: '#/components/schemas/Money' }
 
     ShipmentStatus:
       type: string
@@ -997,16 +1102,19 @@ components:
     ShipmentSummary:
       type: object
       properties:
-        shipmentId: { type: string }
-        orderId: { type: string }
+        shipmentId: { type: string, format: uuid }
+        orderId: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/ShipmentStatus' }
         updatedAt: { type: string, format: date-time }
+        contactName: { type: [string, 'null'] }
+        contactEmail: { type: [string, 'null'], format: email }
+        total: { $ref: '#/components/schemas/Money' }
 
     Shipment:
       type: object
       properties:
-        shipmentId: { type: string }
-        orderId: { type: string }
+        shipmentId: { type: string, format: uuid }
+        orderId: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/ShipmentStatus' }
         shippingAddress: { $ref: '#/components/schemas/Address' }
         statusHistory:

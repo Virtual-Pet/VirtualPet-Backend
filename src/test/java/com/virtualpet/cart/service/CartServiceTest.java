@@ -70,7 +70,7 @@ class CartServiceTest {
 
     when(variantRepository.findByIdWithProduct(any(UUID.class)))
         .thenAnswer(inv -> Optional.ofNullable(variants.get(inv.<UUID>getArgument(0))));
-    when(variantRepository.findAllById(any(Iterable.class)))
+    when(variantRepository.findAllByIdInWithProduct(any()))
         .thenAnswer(
             inv -> {
               Iterable<UUID> ids = inv.getArgument(0);
