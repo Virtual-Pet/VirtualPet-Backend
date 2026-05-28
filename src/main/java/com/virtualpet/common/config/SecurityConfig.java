@@ -39,9 +39,11 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers(
                         "/actuator/**",
+                        "/swagger-ui.html",
                         "/swagger-ui/**",
                         "/api-docs/**",
                         "/v3/api-docs/**",
+                        "/virtualpet-openapi.yaml",
                         "/h2-console/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/health")

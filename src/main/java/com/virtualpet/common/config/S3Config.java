@@ -1,4 +1,4 @@
-package com.virtualpet.backend.shared.config;
+package com.virtualpet.common.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
