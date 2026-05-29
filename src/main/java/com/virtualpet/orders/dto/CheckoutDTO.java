@@ -7,7 +7,11 @@ import com.virtualpet.orders.domain.SessionLineItem;
 import com.virtualpet.orders.domain.SessionStatus;
 import com.virtualpet.orders.domain.SessionTotals;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -58,5 +62,21 @@ public final class CheckoutDTO {
       String currency,
       UUID orderId) {}
 
-  public record OrderConfirmationResponseDTO(UUID orderId, UUID shipmentId, String status) {}
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record OrderConfirmationResponseDTO(
+      UUID orderId, UUID shipmentId, String status, String trackingToken) {}
+
+  public record GuestInfoDTO(
+      @NotBlank String firstName,
+      @NotBlank String lastName,
+      @NotBlank @Email String email) {}
+
+  public record GuestLineItemDTO(
+      @NotNull UUID skuId,
+      @Min(1) int quantity) {}
+
+  public record GuestCheckoutRequestDTO(
+      @Valid @NotNull GuestInfoDTO guest,
+      @NotEmpty List<@Valid GuestLineItemDTO> lineItems,
+      @Valid @NotNull SetShippingAddressRequestDTO shippingAddress) {}
 }

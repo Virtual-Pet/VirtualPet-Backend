@@ -1,7 +1,37 @@
-# [Changelog](https://keepachangelog.com/en/1.1.0/)
+# Changelog
+
+Todos los cambios notables de este proyecto se documentan en este archivo.
+Formato basado en [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+---
+
+## [Unreleased] — 2026-05-29
+
+### Agregado
+
+- **Guest checkout** (`GuestCheckoutController`, `GuestCheckoutService`): nuevo endpoint `POST /api/v1/checkout/guest` que crea una orden sin requerir cuenta de usuario. Recibe datos del invitado (nombre, apellido, email), dirección de envío y líneas del carrito. Retorna `orderId` y `trackingToken` para seguimiento posterior.
+- **`ConfirmOrchestrator.placeGuestOrder`**: método que crea la orden, descuenta stock y crea el envío para pedidos de invitados, almacenando `contactName`, `contactLastname`, `contactEmail` y `trackingToken` en la entidad.
+- **Migración `V1.7__guest_checkout.sql`**: agrega columnas `contact_name`, `contact_lastname`, `contact_email` y `tracking_token` a la tabla de órdenes para soportar pedidos de invitados.
+- **Endpoint público `/api/v1/orders/{id}/track`** (`GET`): permite consultar el estado de un pedido por `trackingToken` sin autenticación.
+
+### Modificado
+
+- **`SecurityConfig`**: se expusieron como públicos los endpoints de sesión de carrito (`GET /api/v1/cart/session/*`, `PUT` y `DELETE` sobre ítems) y `/api/v1/checkout/guest`. Esto permite que usuarios no autenticados operen el carrito y realicen el checkout como invitados.
+- **`CartController` y `CartService`**: ajustes para soportar operaciones de carrito sin token de usuario.
+- **`OrderEntity`**: agrega campos `contactName`, `contactLastname`, `contactEmail` y `trackingToken`.
+- **`CheckoutDTO`**: nuevo record `GuestCheckoutRequestDTO` con `GuestInfoDTO`, `AddressDTO` y líneas del carrito.
+- **`OrderDTO`**: actualizado para exponer `trackingToken` en las respuestas.
+- **`OrderService` y `OrderController`**: ajustes menores de mapeo.
+- **`AuthDTO` y `AuthService`**: limpieza y correcciones menores.
+- **`CatalogDTO` y `CatalogService`**: ajustes de serialización.
+- **`PaymentService`**: corrección menor.
+- **`virtualpet-openapi.yaml`**: spec actualizada con los nuevos endpoints de guest checkout y tracking público.
+
+---
+
+## [1.0.0] — 27/05/2026
 
 **Rama:** `fix/backoffice-orders-and-shipments`
-**Fecha:** 27/05/2026
 
 ---
 

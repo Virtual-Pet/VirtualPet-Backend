@@ -143,7 +143,8 @@ public class CatalogService {
         product.getPetType(),
         basePrice,
         thumbnail,
-        product.isActive());
+        product.isActive(),
+        variants.size());
   }
 
   private ProductDTO toDetail(ProductEntity product) {

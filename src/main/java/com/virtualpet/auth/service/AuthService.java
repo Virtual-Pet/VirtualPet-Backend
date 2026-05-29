@@ -14,6 +14,7 @@ import com.virtualpet.auth.dto.AuthDTO.UpdateMeRequestDTO;
 import com.virtualpet.auth.dto.AuthDTO.UserDTO;
 import com.virtualpet.auth.dto.AuthDTO.UserSummaryDTO;
 import com.virtualpet.auth.repository.UserRepository;
+import com.virtualpet.cart.service.CartService;
 import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.common.security.JwtService;
@@ -42,6 +43,7 @@ public class AuthService {
   private final AuthenticationManager authenticationManager;
   private final RefreshTokenService refreshTokenService;
   private final VirtualPetProperties properties;
+  private final CartService cartService;
 
   /* ---------- Registration ---------- */
 
@@ -72,6 +74,11 @@ public class AuthService {
             .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
     log.info("Login successful: {}", user.getEmail());
+
+    if (request.cartSessionId() != null && !request.cartSessionId().isBlank()) {
+      cartService.mergeAnonCartIntoUser(request.cartSessionId(), user.getId());
+    }
+
     String accessToken = jwtService.generate(user.getId(), user.getEmail(), user.getRole().name());
     String refreshToken = refreshTokenService.createRefreshToken(user);
     return new AuthTokensDTO(

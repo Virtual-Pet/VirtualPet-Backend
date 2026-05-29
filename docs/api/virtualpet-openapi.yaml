@@ -457,6 +457,50 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /checkout/guest:
+    post:
+      tags: [checkout]
+      summary: Checkout como invitado (sin cuenta)
+      description: >
+        Flujo atómico de un paso para clientes sin cuenta: valida stock, crea la orden,
+        genera el shipment y devuelve un token de seguimiento de un solo uso. No requiere
+        autenticación. El token permite consultar el estado del pedido vía GET /orders/{id}/track.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guest, lineItems, shippingAddress]
+              properties:
+                guest:
+                  type: object
+                  required: [firstName, lastName, email]
+                  properties:
+                    firstName: { type: string, example: Juan }
+                    lastName: { type: string, example: García }
+                    email: { type: string, format: email, example: juan@example.com }
+                lineItems:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [skuId, quantity]
+                    properties:
+                      skuId: { type: string, format: uuid }
+                      quantity: { type: integer, minimum: 1 }
+                shippingAddress: { $ref: '#/components/schemas/Address' }
+      responses:
+        '201':
+          description: Orden guest confirmada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderConfirmation' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
   /payments/{id}:
     get:
       tags: [payments]
@@ -555,6 +599,31 @@ paths:
       responses:
         '200':
           description: Orden
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{id}/track:
+    get:
+      tags: [orders]
+      summary: Seguimiento público de orden (guest)
+      description: >
+        Devuelve el detalle completo de una orden sin requerir autenticación.
+        Requiere el token de seguimiento generado al confirmar el pedido guest.
+        El backend valida que el token corresponda al orderId; devuelve 403 si no coincide.
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+          description: Token de seguimiento incluido en la confirmación del pedido guest
+      responses:
+        '200':
+          description: Detalle de la orden
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Order' }
@@ -1029,6 +1098,9 @@ components:
         orderId: { type: string, format: uuid }
         shipmentId: { type: string, format: uuid }
         status: { type: string, examples: [CONFIRMED] }
+        trackingToken:
+          type: string
+          description: Token de seguimiento opaco. Solo presente en pedidos guest (POST /checkout/guest).
 
     OrderCancellation:
       type: object

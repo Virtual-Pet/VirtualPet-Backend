@@ -61,7 +61,22 @@ public class SecurityConfig {
                         "/api/v1/categories")
                     .permitAll()
                     .requestMatchers(
-                        HttpMethod.POST, "/api/v1/payments/webhook/**", "/api/v1/fake-provider/**")
+                        HttpMethod.GET,
+                        "/api/v1/cart/session/*")
+                    .permitAll()
+                    .requestMatchers(
+                        HttpMethod.PUT,
+                        "/api/v1/cart/session/*/items/*")
+                    .permitAll()
+                    .requestMatchers(
+                        HttpMethod.DELETE,
+                        "/api/v1/cart/session/*/items/*")
+                    .permitAll()
+                    .requestMatchers(
+                        HttpMethod.POST, "/api/v1/payments/webhook/**", "/api/v1/fake-provider/**",
+                        "/api/v1/checkout/guest")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/orders/*/track")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()

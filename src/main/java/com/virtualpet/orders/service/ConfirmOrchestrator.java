@@ -12,6 +12,8 @@ import com.virtualpet.orders.domain.OrderStatus;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.SessionLineItem;
 import com.virtualpet.orders.domain.SessionStatus;
+import com.virtualpet.orders.dto.CheckoutDTO.GuestCheckoutRequestDTO;
+import com.virtualpet.orders.dto.CheckoutDTO.GuestInfoDTO;
 import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponseDTO;
 import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.orders.repository.PaymentRepository;
@@ -73,6 +75,80 @@ public class ConfirmOrchestrator {
     return createOrder(session);
   }
 
+  /**
+   * Places an order for a guest (no account required). Bypasses cart and Redis session.
+   * Generates a one-time tracking token returned to the client.
+   */
+  @Transactional
+  public OrderConfirmationResponseDTO placeGuestOrder(
+      CheckoutSession session, GuestInfoDTO guest) {
+    var existing = orderRepository.findBySessionId(session.getId());
+    if (existing.isPresent()) {
+      OrderEntity order = existing.get();
+      UUID shipmentId =
+          shipmentRepository.findByOrderId(order.getId()).map(ShipmentEntity::getId).orElse(null);
+      return new OrderConfirmationResponseDTO(
+          order.getId(), shipmentId, order.getStatus().name(), order.getTrackingToken());
+    }
+
+    if (session.getShippingAddress() == null) {
+      throw new ApiException(HttpStatus.CONFLICT, "Cannot place order without a shipping address");
+    }
+
+    Map<UUID, ProductVariantEntity> variants = fetchVariants(session.getLineItems());
+    String trackingToken = UUID.randomUUID().toString().replace("-", "");
+
+    OrderEntity order =
+        OrderEntity.builder()
+            .userId(null)
+            .sessionId(session.getId())
+            .status(OrderStatus.CONFIRMED)
+            .total(session.getTotals().grandTotal())
+            .shippingAddress(session.getShippingAddress())
+            .warehouseId(DEFAULT_WAREHOUSE_ID)
+            .contactName(guest.firstName())
+            .contactLastname(guest.lastName())
+            .contactEmail(guest.email())
+            .trackingToken(trackingToken)
+            .build();
+    for (SessionLineItem line : session.getLineItems()) {
+      ProductVariantEntity variant = variants.get(line.skuId());
+      OrderItemEntity item =
+          OrderItemEntity.builder()
+              .productVariantId(line.skuId())
+              .skuSnapshot(variant.getSku())
+              .nameSnapshot(variant.getProduct().getName())
+              .unitPrice(line.unitPrice())
+              .quantity(line.quantity())
+              .subtotal(line.subtotal())
+              .build();
+      order.addItem(item);
+    }
+    OrderEntity savedOrder = orderRepository.saveAndFlush(order);
+
+    Map<UUID, Integer> stockLines = new HashMap<>();
+    for (SessionLineItem line : session.getLineItems()) {
+      stockLines.put(line.skuId(), line.quantity());
+    }
+    inventoryService.decrementStock(stockLines);
+
+    ShipmentEntity shipment =
+        ShipmentEntity.builder()
+            .orderId(savedOrder.getId())
+            .warehouseId(DEFAULT_WAREHOUSE_ID)
+            .courier("OWN_DELIVERY")
+            .status(ShipmentStatus.CONFIRMED)
+            .build();
+    ShipmentEntity savedShipment = shipmentRepository.save(shipment);
+    shipmentService.recordInitialStatus(savedShipment.getId(), ShipmentStatus.CONFIRMED, null);
+
+    log.info(
+        "Guest order placed: orderId={}, shipmentId={}",
+        savedOrder.getId(), savedShipment.getId());
+    return new OrderConfirmationResponseDTO(
+        savedOrder.getId(), savedShipment.getId(), savedOrder.getStatus().name(), trackingToken);
+  }
+
   /** Core order-creation logic shared by confirmPaidSession and placeOrder. */
   private OrderConfirmationResponseDTO createOrder(CheckoutSession session) {
     var existing = orderRepository.findBySessionId(session.getId());
@@ -80,7 +156,7 @@ public class ConfirmOrchestrator {
       OrderEntity order = existing.get();
       UUID shipmentId =
           shipmentRepository.findByOrderId(order.getId()).map(ShipmentEntity::getId).orElse(null);
-      return new OrderConfirmationResponseDTO(order.getId(), shipmentId, order.getStatus().name());
+      return new OrderConfirmationResponseDTO(order.getId(), shipmentId, order.getStatus().name(), null);
     }
 
     if (session.getShippingAddress() == null) {
@@ -142,7 +218,7 @@ public class ConfirmOrchestrator {
         savedShipment.getId(),
         session.getId());
     return new OrderConfirmationResponseDTO(
-        savedOrder.getId(), savedShipment.getId(), savedOrder.getStatus().name());
+        savedOrder.getId(), savedShipment.getId(), savedOrder.getStatus().name(), null);
   }
 
   private Map<UUID, ProductVariantEntity> fetchVariants(List<SessionLineItem> lines) {
