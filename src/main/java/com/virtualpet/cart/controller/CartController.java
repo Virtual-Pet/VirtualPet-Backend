@@ -6,6 +6,7 @@ import com.virtualpet.cart.dto.CartDTO.UpdateQuantityRequestDTO;
 import com.virtualpet.cart.service.CartService;
 import com.virtualpet.common.security.UserPrincipal;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,23 +22,26 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Per-user cart API. The cart is identified by the authenticated user; creation is lazy on first
- * GET. PUT acts as an upsert against {skuId}, DELETE is idempotent.
+ * Cart API. Authenticated users use /cart (keyed by userId). Anonymous users use
+ * /cart/session/{sessionId} (keyed by a client-generated UUID stored in a browser cookie).
  */
 @RestController
 @RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('CUSTOMER')")
 public class CartController {
 
   private final CartService cartService;
 
+  /* ---------- Authenticated cart ---------- */
+
   @GetMapping
+  @PreAuthorize("hasRole('CUSTOMER')")
   public CartViewDTO getCart(@AuthenticationPrincipal UserPrincipal currentUser) {
     return cartService.getCart(currentUser.getId());
   }
 
   @PutMapping("/items/{skuId}")
+  @PreAuthorize("hasRole('CUSTOMER')")
   public CartItemQuantityDTO putItem(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @PathVariable UUID skuId,
@@ -46,9 +50,32 @@ public class CartController {
   }
 
   @DeleteMapping("/items/{skuId}")
+  @PreAuthorize("hasRole('CUSTOMER')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void removeItem(
       @AuthenticationPrincipal UserPrincipal currentUser, @PathVariable UUID skuId) {
     cartService.removeItem(currentUser.getId(), skuId);
+  }
+
+  /* ---------- Anonymous cart ---------- */
+
+  @GetMapping("/session/{sessionId}")
+  public CartViewDTO getAnonCart(@PathVariable @NotBlank String sessionId) {
+    return cartService.getAnonCart(sessionId);
+  }
+
+  @PutMapping("/session/{sessionId}/items/{skuId}")
+  public CartItemQuantityDTO putAnonItem(
+      @PathVariable @NotBlank String sessionId,
+      @PathVariable UUID skuId,
+      @Valid @RequestBody UpdateQuantityRequestDTO request) {
+    return cartService.putAnonItem(sessionId, skuId, request.quantity());
+  }
+
+  @DeleteMapping("/session/{sessionId}/items/{skuId}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void removeAnonItem(
+      @PathVariable @NotBlank String sessionId, @PathVariable UUID skuId) {
+    cartService.removeAnonItem(sessionId, skuId);
   }
 }

@@ -48,6 +48,11 @@ public class OrderController {
     return orderService.getById(id, currentUser.getId(), isCustomer(currentUser));
   }
 
+  @GetMapping("/{id}/track")
+  public OrderResponseDTO track(@PathVariable UUID id, @RequestParam String token) {
+    return orderService.getByTrackingToken(id, token);
+  }
+
   @PostMapping("/{id}/cancel")
   public OrderCancellationDTO cancel(
       @AuthenticationPrincipal UserPrincipal currentUser,

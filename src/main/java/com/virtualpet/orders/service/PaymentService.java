@@ -147,7 +147,7 @@ public class PaymentService {
             UUID shipmentId = shipmentRepository.findByOrderId(order.getId())
                 .map(ShipmentEntity::getId).orElse(null);
             OrderConfirmationResponseDTO body =
-                new OrderConfirmationResponseDTO(order.getId(), shipmentId, order.getStatus().name());
+                new OrderConfirmationResponseDTO(order.getId(), shipmentId, order.getStatus().name(), null);
             return new ConfirmOutcome(HttpStatus.CREATED, body);
           })
           .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,

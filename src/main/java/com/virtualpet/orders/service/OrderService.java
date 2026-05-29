@@ -94,6 +94,20 @@ public class OrderService {
     return toResponse(order);
   }
 
+  /* ---------- Guest tracking ---------- */
+
+  @Transactional(readOnly = true)
+  public OrderResponseDTO getByTrackingToken(UUID orderId, String token) {
+    OrderEntity order =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
+    if (token == null || !token.equals(order.getTrackingToken())) {
+      throw new ApiException(HttpStatus.FORBIDDEN, "Invalid tracking token");
+    }
+    return toResponse(order);
+  }
+
   /* ---------- Cancel ---------- */
 
   @Transactional
@@ -148,6 +162,8 @@ public class OrderService {
                 i ->
                     new OrderLineItemDTO(
                         i.getProductVariantId(),
+                        i.getNameSnapshot(),
+                        i.getSkuSnapshot(),
                         i.getQuantity() == null ? 0 : i.getQuantity(),
                         i.getUnitPrice(),
                         i.getSubtotal()))

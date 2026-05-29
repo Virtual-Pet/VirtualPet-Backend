@@ -38,6 +38,7 @@ import tools.jackson.databind.ObjectMapper;
 public class CartService {
 
   private static final String KEY_PREFIX = "cart:";
+  private static final String ANON_KEY_PREFIX = "cart:anon:";
   private static final long TTL_HOURS = 24;
   private static final String CURRENCY = "ARS";
   private static final BigDecimal SHIPPING = BigDecimal.ZERO;
@@ -89,10 +90,67 @@ public class CartService {
     log.debug("Cart cleared: userId={}", userId);
   }
 
+  /* ---------- Anonymous cart ---------- */
+
+  public com.virtualpet.cart.dto.CartDTO.CartViewDTO getAnonCart(String sessionId) {
+    return toDto(loadAnonCart(sessionId));
+  }
+
+  public CartItemQuantityDTO putAnonItem(String sessionId, UUID skuId, int quantity) {
+    if (quantity < 1) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Quantity must be at least 1");
+    }
+    requireVariant(skuId);
+
+    Cart cart = loadAnonCart(sessionId);
+    CartItem existing = cart.findItem(skuId);
+    if (existing != null) {
+      existing.setQuantity(quantity);
+    } else {
+      cart.getItems().add(CartItem.builder().skuId(skuId).quantity(quantity).build());
+    }
+    saveAnonCart(sessionId, cart);
+    return new CartItemQuantityDTO(skuId, quantity);
+  }
+
+  public void removeAnonItem(String sessionId, UUID skuId) {
+    Cart cart = loadAnonCart(sessionId);
+    boolean removed = cart.getItems().removeIf(i -> skuId.equals(i.getSkuId()));
+    if (removed) {
+      saveAnonCart(sessionId, cart);
+    }
+  }
+
+  /** Merges anonymous cart into the user cart, summing quantities for duplicate SKUs. */
+  public void mergeAnonCartIntoUser(String sessionId, UUID userId) {
+    Cart anon = loadAnonCart(sessionId);
+    if (anon.getItems().isEmpty()) return;
+
+    Cart user = loadCart(userId);
+    for (CartItem anonItem : anon.getItems()) {
+      CartItem existing = user.findItem(anonItem.getSkuId());
+      if (existing != null) {
+        existing.setQuantity(existing.getQuantity() + anonItem.getQuantity());
+      } else {
+        user.getItems().add(CartItem.builder()
+            .skuId(anonItem.getSkuId())
+            .quantity(anonItem.getQuantity())
+            .build());
+      }
+    }
+    saveCart(userId, user);
+    redisTemplate.delete(anonKey(sessionId));
+    log.debug("Anon cart merged into userId={}, sessionId={}", userId, sessionId);
+  }
+
   /* ---------- Internals ---------- */
 
   private String key(UUID userId) {
     return KEY_PREFIX + userId;
+  }
+
+  private String anonKey(String sessionId) {
+    return ANON_KEY_PREFIX + sessionId;
   }
 
   private Cart loadCart(UUID userId) {
@@ -108,10 +166,32 @@ public class CartService {
     }
   }
 
+  private Cart loadAnonCart(String sessionId) {
+    String json = redisTemplate.opsForValue().get(anonKey(sessionId));
+    if (json == null) {
+      return Cart.builder().build();
+    }
+    try {
+      return objectMapper.readValue(json, Cart.class);
+    } catch (JacksonException e) {
+      log.warn("Failed to deserialize anon cart for sessionId={}, returning empty", sessionId, e);
+      return Cart.builder().build();
+    }
+  }
+
   private void saveCart(UUID userId, Cart cart) {
     try {
       String json = objectMapper.writeValueAsString(cart);
       redisTemplate.opsForValue().set(key(userId), json, TTL_HOURS, TimeUnit.HOURS);
+    } catch (JacksonException e) {
+      throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist cart");
+    }
+  }
+
+  private void saveAnonCart(String sessionId, Cart cart) {
+    try {
+      String json = objectMapper.writeValueAsString(cart);
+      redisTemplate.opsForValue().set(anonKey(sessionId), json, TTL_HOURS, TimeUnit.HOURS);
     } catch (JacksonException e) {
       throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist cart");
     }

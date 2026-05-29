@@ -24,7 +24,7 @@ public class OrderEntity {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column(name = "user_id", nullable = false)
+  @Column(name = "user_id")
   private UUID userId;
 
   @Column(name = "session_id", unique = true)
@@ -44,6 +44,9 @@ public class OrderEntity {
 
   @Column(name = "contact_phone", length = 30)
   private String contactPhone;
+
+  @Column(name = "tracking_token", length = 64, unique = true)
+  private String trackingToken;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)

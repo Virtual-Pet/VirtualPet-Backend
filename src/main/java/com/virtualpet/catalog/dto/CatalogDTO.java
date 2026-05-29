@@ -23,7 +23,8 @@ public final class CatalogDTO {
       String petType,
       BigDecimal basePrice,
       String thumbnail,
-      boolean active) {}
+      boolean active,
+      int skuCount) {}
 
   public record ProductDTO(
       UUID id,

@@ -25,7 +25,12 @@ public final class OrderDTO {
       UUID shipmentId) {}
 
   public record OrderLineItemDTO(
-      UUID skuId, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {}
+      UUID skuId,
+      String productName,
+      String sku,
+      int quantity,
+      BigDecimal unitPrice,
+      BigDecimal subtotal) {}
 
   public record OrderTotalsDTO(BigDecimal items, BigDecimal shipping, BigDecimal grandTotal) {}
 
