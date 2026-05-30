@@ -3,17 +3,10 @@ services:
     image: 705690519921.dkr.ecr.us-east-2.amazonaws.com/virtualpet-backend:latest
     expose:
       - "8080"
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      JWT_SECRET: CLAVE_LARGA_ALEATORIA_MINIMO_32_CARACTERES
-      DB_URL: jdbc:postgresql://virtualpetdb.cjwokymoug62.us-east-2.rds.amazonaws.com/virtualpetdb
-      DB_USER: virtualpet
-      DB_PASSWORD: VirtualPetGrupo3
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      AWS_BUCKET_NAME: amzn-s3-virtualpet
-      AWS_REGION: us-east-2
-      CORS_ORIGINS: http://3.144.149.124,http://18.226.20.103
     depends_on:
       redis:
         condition: service_healthy
@@ -24,6 +17,15 @@ services:
       start_period: 60s
       retries: 5
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
     networks:
       - vp_net
 
@@ -38,6 +40,11 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     networks:
       - vp_net
 
@@ -51,6 +58,11 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     networks:
       - vp_net
 
