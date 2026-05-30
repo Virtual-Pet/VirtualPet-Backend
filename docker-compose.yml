@@ -9,6 +9,7 @@ services:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://3.144.149.124,http://18.226.20.103,http://localhost:3000,http://localhost:3001}
     depends_on:
       db:
         condition: service_healthy
