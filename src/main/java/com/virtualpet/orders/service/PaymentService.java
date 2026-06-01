@@ -4,7 +4,6 @@ import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.common.idempotency.IdempotencyKeyService;
 import com.virtualpet.orders.domain.CheckoutSession;
-import com.virtualpet.orders.domain.OrderEntity;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.PaymentStatus;
 import com.virtualpet.orders.domain.SessionStatus;

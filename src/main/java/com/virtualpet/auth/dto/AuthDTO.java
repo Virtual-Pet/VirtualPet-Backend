@@ -16,10 +16,7 @@ public final class AuthDTO {
 
   /* ---------- Requests ---------- */
 
-  public record LoginRequestDTO(
-      @Email @NotBlank String email,
-      @NotBlank String password,
-      String cartSessionId) {}
+  public record LoginRequestDTO(@Email @NotBlank String email, @NotBlank String password) {}
 
   public record LogoutRequestDTO(@NotBlank String refreshToken) {}
 

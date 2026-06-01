@@ -10,8 +10,6 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
@@ -55,8 +53,4 @@ public class ProblemDetailEntryPoints {
   private static String slug(HttpStatus status) {
     return status.name().toLowerCase().replace('_', '-');
   }
-
-  // Suppress unused-typed lambda warnings; both interfaces are functional.
-  @SuppressWarnings("unused")
-  private static void typeCheck(AuthenticationException e, AccessDeniedException d) {}
 }

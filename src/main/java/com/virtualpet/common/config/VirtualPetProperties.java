@@ -16,7 +16,6 @@ public class VirtualPetProperties {
   private Cart cart = new Cart();
   private Cors cors = new Cors();
   private Payment payment = new Payment();
-  private Mercadopago mercadopago = new Mercadopago();
   private App app = new App();
 
   @Getter
@@ -30,6 +29,14 @@ public class VirtualPetProperties {
   @Setter
   public static class Cart {
     private int ttlHours = 72;
+    private Cookie cookie = new Cookie();
+
+    @Getter
+    @Setter
+    public static class Cookie {
+      private String sameSite = "Lax";
+      private boolean secure = false;
+    }
   }
 
   @Getter
@@ -42,14 +49,6 @@ public class VirtualPetProperties {
   @Setter
   public static class Payment {
     private String provider = "mock";
-  }
-
-  @Getter
-  @Setter
-  public static class Mercadopago {
-    private String accessToken;
-    private String webhookSecret;
-    private String notificationUrl;
   }
 
   @Getter
