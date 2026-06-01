@@ -44,9 +44,4 @@ public class ETagSupport {
       throw new IllegalStateException("SHA-256 unavailable", e);
     }
   }
-
-  public boolean matches(String etag, HttpServletRequest request) {
-    String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
-    return etag.equals(ifNoneMatch);
-  }
 }

@@ -64,7 +64,7 @@ public class AuthService {
   /* ---------- Login / logout / refresh ---------- */
 
   @Transactional
-  public AuthTokensDTO login(LoginRequestDTO request) {
+  public AuthTokensDTO login(LoginRequestDTO request, String cartSessionId) {
     authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(request.email().toLowerCase(), request.password()));
 
@@ -75,8 +75,8 @@ public class AuthService {
 
     log.info("Login successful: {}", user.getEmail());
 
-    if (request.cartSessionId() != null && !request.cartSessionId().isBlank()) {
-      cartService.mergeAnonCartIntoUser(request.cartSessionId(), user.getId());
+    if (cartSessionId != null && !cartSessionId.isBlank()) {
+      cartService.mergeAnonCartIntoUser(cartSessionId, user.getId());
     }
 
     String accessToken = jwtService.generate(user.getId(), user.getEmail(), user.getRole().name());

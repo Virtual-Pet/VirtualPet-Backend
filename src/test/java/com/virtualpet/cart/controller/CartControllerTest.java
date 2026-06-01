@@ -16,6 +16,7 @@ import com.virtualpet.catalog.repository.ProductRepository;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.servlet.http.Cookie;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -47,6 +48,8 @@ class CartControllerTest {
 
   private String accessToken;
   private UUID skuId;
+  private String email;
+  private String password;
 
   @BeforeEach
   void setup() throws Exception {
@@ -88,8 +91,8 @@ class CartControllerTest {
     skuId = variant.getId();
 
     // Register and login a customer
-    String email = "buyer-" + UUID.randomUUID() + "@example.com";
-    String password = "Strong-pass1";
+    email = "buyer-" + UUID.randomUUID() + "@example.com";
+    password = "Strong-pass1";
     mockMvc
         .perform(
             post("/api/v1/auth/register/customer")
@@ -180,13 +183,82 @@ class CartControllerTest {
   }
 
   @Test
-  void cartEndpointsRequireAuthentication() throws Exception {
-    mockMvc.perform(get("/api/v1/cart")).andExpect(status().isUnauthorized());
+  void guestPutIssuesSessionCookieAndGetReturnsItem() throws Exception {
+    MvcResult putResult =
+        mockMvc
+            .perform(
+                put("/api/v1/cart/items/" + skuId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"quantity\":2}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.quantity").value(2))
+            .andReturn();
+
+    Cookie sessionCookie = putResult.getResponse().getCookie("CART_SESSION");
+    org.assertj.core.api.Assertions.assertThat(sessionCookie).isNotNull();
+    org.assertj.core.api.Assertions.assertThat(sessionCookie.getValue()).isNotBlank();
+
+    // GET with the cookie returns the guest cart
     mockMvc
-        .perform(
-            put("/api/v1/cart/items/" + skuId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"quantity\":1}"))
-        .andExpect(status().isUnauthorized());
+        .perform(get("/api/v1/cart").cookie(sessionCookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items.length()").value(1))
+        .andExpect(jsonPath("$.items[0].skuId").value(skuId.toString()))
+        .andExpect(jsonPath("$.items[0].quantity").value(2));
+  }
+
+  @Test
+  void guestWithoutCookieGetsEmptyCart() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/cart"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items.length()").value(0))
+        .andExpect(jsonPath("$.totals.grandTotal").value("0.00"));
+  }
+
+  @Test
+  void loginMergesGuestCartAndClearsCookie() throws Exception {
+    // Guest adds an item and gets a session cookie
+    MvcResult putResult =
+        mockMvc
+            .perform(
+                put("/api/v1/cart/items/" + skuId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"quantity\":4}"))
+            .andExpect(status().isOk())
+            .andReturn();
+    Cookie sessionCookie = putResult.getResponse().getCookie("CART_SESSION");
+
+    // Login carrying the cookie -> merge + clear cookie
+    MvcResult loginResult =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/login")
+                    .cookie(sessionCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        { "email": "%s", "password": "%s" }
+                        """
+                            .formatted(email, password)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    Cookie cleared = loginResult.getResponse().getCookie("CART_SESSION");
+    org.assertj.core.api.Assertions.assertThat(cleared).isNotNull();
+    org.assertj.core.api.Assertions.assertThat(cleared.getMaxAge()).isZero();
+    String mergedToken =
+        objectMapper
+            .readTree(loginResult.getResponse().getContentAsString())
+            .get("accessToken")
+            .asText();
+
+    // Authenticated cart now holds the merged item
+    mockMvc
+        .perform(get("/api/v1/cart").header("Authorization", "Bearer " + mergedToken))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items.length()").value(1))
+        .andExpect(jsonPath("$.items[0].skuId").value(skuId.toString()))
+        .andExpect(jsonPath("$.items[0].quantity").value(4));
   }
 }

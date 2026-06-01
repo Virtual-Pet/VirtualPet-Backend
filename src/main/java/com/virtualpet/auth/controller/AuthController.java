@@ -12,13 +12,18 @@ import com.virtualpet.auth.dto.AuthDTO.UpdateMeRequestDTO;
 import com.virtualpet.auth.dto.AuthDTO.UserDTO;
 import com.virtualpet.auth.dto.AuthDTO.UserSummaryDTO;
 import com.virtualpet.auth.service.AuthService;
+import com.virtualpet.cart.web.CartSessionCookie;
+import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.security.UserPrincipal;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,12 +38,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthService authService;
+  private final VirtualPetProperties properties;
 
   /* ---------- Session ---------- */
 
   @PostMapping("/login")
-  public ResponseEntity<AuthTokensDTO> login(@Valid @RequestBody LoginRequestDTO request) {
-    return ResponseEntity.ok(this.authService.login(request));
+  public ResponseEntity<AuthTokensDTO> login(
+      @Valid @RequestBody LoginRequestDTO request,
+      @CookieValue(name = CartSessionCookie.NAME, required = false) String cartSessionId,
+      HttpServletResponse response) {
+    AuthTokensDTO tokens = authService.login(request, cartSessionId);
+    if (cartSessionId != null && !cartSessionId.isBlank()) {
+      response.addHeader(
+          HttpHeaders.SET_COOKIE, CartSessionCookie.clear(properties.getCart()).toString());
+    }
+    return ResponseEntity.ok(tokens);
   }
 
   @PostMapping("/logout")

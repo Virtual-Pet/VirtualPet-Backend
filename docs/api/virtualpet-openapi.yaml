@@ -54,8 +54,14 @@ paths:
     post:
       tags: [auth]
       summary: Login
-      description: Autentica con email y contraseña y devuelve los tokens. No crea carrito (creación lazy).
+      description: >
+        Autentica con email y contraseña y devuelve los tokens. Si la petición incluye la cookie
+        CART_SESSION, el carrito anónimo se fusiona con el carrito del usuario (sumando cantidades
+        de SKUs duplicados), se elimina el carrito anónimo y la cookie se borra (Set-Cookie con
+        Max-Age=0). No crea carrito de usuario salvo que haya items que fusionar (creación lazy).
       security: []
+      parameters:
+        - { $ref: '#/components/parameters/CartSession' }
       requestBody:
         required: true
         content:
@@ -69,6 +75,12 @@ paths:
       responses:
         '200':
           description: Autenticado
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: >
+                Presente solo si llegó la cookie CART_SESSION; la borra tras la fusión
+                (CART_SESSION=; Max-Age=0).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthTokens' }
@@ -315,22 +327,38 @@ paths:
     get:
       tags: [cart]
       summary: Obtener el carrito
-      description: Devuelve el carrito del usuario. Si aún no existe (lazy), responde carrito vacío con 200.
+      description: >
+        Devuelve el carrito. Si la petición está autenticada (Bearer token) se resuelve por usuario;
+        en caso contrario se identifica por la cookie CART_SESSION (que lleva solo el id de sesión;
+        el contenido vive en Redis). Sin usuario ni cookie responde un carrito vacío. Creación lazy:
+        responde 200 aunque el carrito no exista.
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - { $ref: '#/components/parameters/CartSession' }
       responses:
         '200':
           description: Carrito (vacío o con items)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Cart' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /cart/items/{skuId}:
     put:
       tags: [cart]
       summary: Fijar cantidad de un SKU (upsert)
-      description: Fija la cantidad exacta. Dispara la creación lazy del carrito si no existe. Idempotente.
+      description: >
+        Fija la cantidad exacta. Dispara la creación lazy del carrito si no existe. Idempotente.
+        Si la petición es anónima y no trae la cookie CART_SESSION, se genera una sesión nueva y se
+        devuelve en Set-Cookie (solo el id de sesión; el contenido vive en Redis); las peticiones
+        siguientes la reenvían automáticamente.
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - { $ref: '#/components/parameters/SkuId' }
+        - { $ref: '#/components/parameters/CartSession' }
       requestBody:
         required: true
         content:
@@ -343,6 +371,8 @@ paths:
       responses:
         '200':
           description: Item resultante
+          headers:
+            Set-Cookie: { $ref: '#/components/headers/SetCartSession' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CartItemQuantity' }
@@ -351,9 +381,16 @@ paths:
     delete:
       tags: [cart]
       summary: Eliminar un SKU del carrito
-      description: Elimina el producto por completo. Idempotente (éxito aunque no estuviera).
+      description: >
+        Elimina el producto por completo. Idempotente (éxito aunque no estuviera). Las peticiones
+        anónimas se identifican por la cookie CART_SESSION (solo el id de sesión; el contenido vive
+        en Redis).
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - { $ref: '#/components/parameters/SkuId' }
+        - { $ref: '#/components/parameters/CartSession' }
       responses:
         '204': { description: Eliminado (o ya no estaba) }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -801,6 +838,15 @@ components:
       required: true
       schema: { type: string, format: uuid }
       description: checkoutSessionId
+    CartSession:
+      name: CART_SESSION
+      in: cookie
+      required: false
+      schema: { type: string }
+      description: >
+        Id de sesión del carrito anónimo. La cookie lleva únicamente el id; el contenido del
+        carrito vive en Redis (cart:anon:{id}), nunca en la cookie. Se emite en la primera
+        mutación anónima y el navegador la reenvía automáticamente.
 
   headers:
     ETag:
@@ -809,6 +855,11 @@ components:
     XRequestId:
       schema: { type: string }
       description: ID de correlación, devuelto en toda respuesta
+    SetCartSession:
+      schema: { type: string }
+      description: >
+        Cookie CART_SESSION (HttpOnly) con el id de sesión del carrito invitado — solo el id,
+        el contenido vive en Redis. Presente solo en la primera mutación anónima.
 
   responses:
     BadRequest:

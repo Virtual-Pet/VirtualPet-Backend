@@ -4,9 +4,12 @@ import com.virtualpet.cart.domain.Cart;
 import com.virtualpet.cart.domain.CartItem;
 import com.virtualpet.cart.dto.CartDTO.CartItemQuantityDTO;
 import com.virtualpet.cart.dto.CartDTO.TotalsDTO;
+import com.virtualpet.cart.dto.CartDTO.CartViewDTO;
+import com.virtualpet.cart.dto.CartDTO.CartItemDTO;
 import com.virtualpet.catalog.domain.ProductEntity;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
+import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -39,7 +42,6 @@ public class CartService {
 
   private static final String KEY_PREFIX = "cart:";
   private static final String ANON_KEY_PREFIX = "cart:anon:";
-  private static final long TTL_HOURS = 24;
   private static final String CURRENCY = "ARS";
   private static final BigDecimal SHIPPING = BigDecimal.ZERO;
   private static final TypeReference<Map<String, String>> ATTRS_TYPE = new TypeReference<>() {};
@@ -47,12 +49,18 @@ public class CartService {
   private final StringRedisTemplate redisTemplate;
   private final ObjectMapper objectMapper;
   private final ProductVariantRepository variantRepository;
+  private final VirtualPetProperties properties;
 
   /* ---------- Public API ---------- */
 
-  public com.virtualpet.cart.dto.CartDTO.CartViewDTO getCart(UUID userId) {
+  public CartViewDTO getCart(UUID userId) {
     Cart cart = loadCart(userId);
     return toDto(cart);
+  }
+
+  /** Empty cart view, used when there is neither an authenticated user nor a session cookie. */
+  public CartViewDTO emptyCart() {
+    return toDto(Cart.builder().build());
   }
 
   public CartItemQuantityDTO putItem(UUID userId, UUID skuId, int quantity) {
@@ -92,7 +100,7 @@ public class CartService {
 
   /* ---------- Anonymous cart ---------- */
 
-  public com.virtualpet.cart.dto.CartDTO.CartViewDTO getAnonCart(String sessionId) {
+  public CartViewDTO getAnonCart(String sessionId) {
     return toDto(loadAnonCart(sessionId));
   }
 
@@ -182,7 +190,9 @@ public class CartService {
   private void saveCart(UUID userId, Cart cart) {
     try {
       String json = objectMapper.writeValueAsString(cart);
-      redisTemplate.opsForValue().set(key(userId), json, TTL_HOURS, TimeUnit.HOURS);
+      redisTemplate
+          .opsForValue()
+          .set(key(userId), json, properties.getCart().getTtlHours(), TimeUnit.HOURS);
     } catch (JacksonException e) {
       throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist cart");
     }
@@ -191,7 +201,9 @@ public class CartService {
   private void saveAnonCart(String sessionId, Cart cart) {
     try {
       String json = objectMapper.writeValueAsString(cart);
-      redisTemplate.opsForValue().set(anonKey(sessionId), json, TTL_HOURS, TimeUnit.HOURS);
+      redisTemplate
+          .opsForValue()
+          .set(anonKey(sessionId), json, properties.getCart().getTtlHours(), TimeUnit.HOURS);
     } catch (JacksonException e) {
       throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist cart");
     }
@@ -203,33 +215,33 @@ public class CartService {
         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "SKU not found"));
   }
 
-  private com.virtualpet.cart.dto.CartDTO.CartViewDTO toDto(Cart cart) {
+  private CartViewDTO toDto(Cart cart) {
     if (cart.getItems().isEmpty()) {
-      return new com.virtualpet.cart.dto.CartDTO.CartViewDTO(
+      return new CartViewDTO(
           List.of(), new TotalsDTO(BigDecimal.ZERO, SHIPPING, SHIPPING), CURRENCY);
     }
 
     List<UUID> ids = cart.getItems().stream().map(CartItem::getSkuId).toList();
     Map<UUID, ProductVariantEntity> byId = fetchVariants(ids);
 
-    List<com.virtualpet.cart.dto.CartDTO.CartItemDTO> dtoItems =
+    List<CartItemDTO> dtoItems =
         cart.getItems().stream().map(item -> toItemDto(item, byId.get(item.getSkuId()))).toList();
 
     BigDecimal itemsTotal =
         dtoItems.stream()
-            .map(com.virtualpet.cart.dto.CartDTO.CartItemDTO::subtotal)
+            .map(CartItemDTO::subtotal)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     TotalsDTO totals = new TotalsDTO(itemsTotal, SHIPPING, itemsTotal.add(SHIPPING));
-    return new com.virtualpet.cart.dto.CartDTO.CartViewDTO(dtoItems, totals, CURRENCY);
+    return new CartViewDTO(dtoItems, totals, CURRENCY);
   }
 
-  private com.virtualpet.cart.dto.CartDTO.CartItemDTO toItemDto(
+  private CartItemDTO toItemDto(
       CartItem item, ProductVariantEntity variant) {
     BigDecimal unitPrice = variant == null ? BigDecimal.ZERO : variant.getPrice();
     BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
     ProductEntity product = variant == null ? null : variant.getProduct();
     boolean available = variant != null && variant.getStock() >= item.getQuantity();
-    return new com.virtualpet.cart.dto.CartDTO.CartItemDTO(
+    return new CartItemDTO(
         item.getSkuId(),
         variant == null ? null : variant.getSku(),
         product == null ? null : product.getId(),

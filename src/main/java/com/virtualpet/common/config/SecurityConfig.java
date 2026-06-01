@@ -60,17 +60,11 @@ public class SecurityConfig {
                         "/api/v1/products/**",
                         "/api/v1/categories")
                     .permitAll()
-                    .requestMatchers(
-                        HttpMethod.GET,
-                        "/api/v1/cart/session/*")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/cart")
                     .permitAll()
-                    .requestMatchers(
-                        HttpMethod.PUT,
-                        "/api/v1/cart/session/*/items/*")
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/cart/items/*")
                     .permitAll()
-                    .requestMatchers(
-                        HttpMethod.DELETE,
-                        "/api/v1/cart/session/*/items/*")
+                    .requestMatchers(HttpMethod.DELETE, "/api/v1/cart/items/*")
                     .permitAll()
                     .requestMatchers(
                         HttpMethod.POST, "/api/v1/payments/webhook/**", "/api/v1/fake-provider/**",

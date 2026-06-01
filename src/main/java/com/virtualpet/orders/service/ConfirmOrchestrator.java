@@ -12,7 +12,6 @@ import com.virtualpet.orders.domain.OrderStatus;
 import com.virtualpet.orders.domain.PaymentEntity;
 import com.virtualpet.orders.domain.SessionLineItem;
 import com.virtualpet.orders.domain.SessionStatus;
-import com.virtualpet.orders.dto.CheckoutDTO.GuestCheckoutRequestDTO;
 import com.virtualpet.orders.dto.CheckoutDTO.GuestInfoDTO;
 import com.virtualpet.orders.dto.CheckoutDTO.OrderConfirmationResponseDTO;
 import com.virtualpet.orders.repository.OrderRepository;

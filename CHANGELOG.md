@@ -5,6 +5,31 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased] — 2026-06-01
+
+Refactor del carrito: un único set de endpoints para usuarios autenticados e invitados, con la sesión del carrito invitado manejada por cookie.
+
+### Agregado
+
+- **`CartSessionCookie`** (`com.virtualpet.cart.web`): helper que construye la cookie `CART_SESSION` (HttpOnly) usada para identificar el carrito invitado. La cookie lleva **solo el id de sesión**; el contenido del carrito vive en Redis (`cart:anon:{id}`).
+- **Propiedades configurables** `virtualpet.cart.cookie.same-site` (default `Lax`) y `virtualpet.cart.cookie.secure` (default `false`) en `VirtualPetProperties`, para soportar despliegues cross-domain en producción (`SameSite=None; Secure`).
+- **`CartService.emptyCart()`**: devuelve un carrito vacío para el caso de `GET /cart` sin usuario ni cookie.
+
+### Modificado
+
+- **`CartController`**: se unificaron los endpoints del carrito. Ahora existe un único set —`GET /cart`, `PUT /cart/items/{skuId}`, `DELETE /cart/items/{skuId}`— que sirve tanto a usuarios autenticados (resueltos por user id) como anónimos (identificados por la cookie `CART_SESSION`). El id de sesión se crea en la primera mutación (`PUT`), se devuelve en `Set-Cookie` y el navegador lo reenvía automáticamente.
+- **`AuthController` / `AuthService` / `AuthDTO`**: el merge del carrito anónimo en el login ahora se dispara desde la cookie `CART_SESSION` (se removió `cartSessionId` del body de `LoginRequest`). Tras el merge se elimina el carrito anónimo de Redis y se borra la cookie (`Set-Cookie: CART_SESSION=; Max-Age=0`).
+- **`SecurityConfig`**: se reemplazaron los matchers públicos `/api/v1/cart/session/*` por `GET /api/v1/cart` y `PUT`/`DELETE /api/v1/cart/items/*`.
+- **`CartService`**: el TTL en Redis ahora usa `virtualpet.cart.ttl-hours` (antes estaba hardcodeado en 24h) para alinearlo con el `Max-Age` de la cookie.
+- **`virtualpet-openapi.yaml`**: se eliminaron los paths `/cart/session/*`; se documentó la cookie `CART_SESSION` de forma consistente mediante componentes reutilizables (parámetro `CartSession` y header `SetCartSession`) en `GET`/`PUT`/`DELETE /cart` y `/auth/login`, aclarando que la cookie lleva solo el id de sesión.
+
+### Eliminado
+
+- **Endpoints duplicados del carrito anónimo**: `GET /api/v1/cart/session/{sessionId}` y `PUT`/`DELETE /api/v1/cart/session/{sessionId}/items/{skuId}`. Su funcionalidad queda cubierta por el set unificado de `/cart` + cookie `CART_SESSION`.
+- **Campo `cartSessionId`** del record `LoginRequestDTO` y el parámetro `CartSessionId` del OpenAPI (reemplazados por la cookie).
+
+---
+
 ## [Unreleased] — 2026-05-29
 
 ### Agregado

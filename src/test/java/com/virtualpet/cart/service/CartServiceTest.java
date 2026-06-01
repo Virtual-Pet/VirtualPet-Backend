@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.virtualpet.cart.dto.CartDTO;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
+import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -84,7 +85,7 @@ class CartServiceTest {
               return result;
             });
 
-    service = new CartService(redis, json, variantRepository);
+    service = new CartService(redis, json, variantRepository, new VirtualPetProperties());
   }
 
   @Test
