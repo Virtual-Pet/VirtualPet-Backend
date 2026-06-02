@@ -29,7 +29,7 @@ public class GuestCheckoutService {
   private final ConfirmOrchestrator confirmOrchestrator;
 
   @Transactional
-  public OrderConfirmationResponseDTO checkout(GuestCheckoutRequestDTO request) {
+  public OrderConfirmationResponseDTO checkout(GuestCheckoutRequestDTO request, String cartSessionId) {
     Map<UUID, ProductVariantEntity> variants = fetchAndValidate(request.lineItems());
 
     List<SessionLineItem> lineItems =
@@ -55,7 +55,7 @@ public class GuestCheckoutService {
             .shippingAddress(request.shippingAddress().toAddress())
             .build();
 
-    return confirmOrchestrator.placeGuestOrder(session, request.guest());
+    return confirmOrchestrator.placeGuestOrder(session, request.guest(), cartSessionId);
   }
 
   private Map<UUID, ProductVariantEntity> fetchAndValidate(List<GuestLineItemDTO> items) {
