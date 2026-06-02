@@ -98,6 +98,11 @@ public class CartService {
     log.debug("Cart cleared: userId={}", userId);
   }
 
+  public void clearAnonCart(String sessionId) {
+    redisTemplate.delete(anonKey(sessionId));
+    log.debug("Anon cart cleared: sessionId={}", sessionId);
+  }
+
   /* ---------- Anonymous cart ---------- */
 
   public CartViewDTO getAnonCart(String sessionId) {

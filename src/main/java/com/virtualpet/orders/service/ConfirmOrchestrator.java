@@ -80,7 +80,7 @@ public class ConfirmOrchestrator {
    */
   @Transactional
   public OrderConfirmationResponseDTO placeGuestOrder(
-      CheckoutSession session, GuestInfoDTO guest) {
+      CheckoutSession session, GuestInfoDTO guest, String cartSessionId) {
     var existing = orderRepository.findBySessionId(session.getId());
     if (existing.isPresent()) {
       OrderEntity order = existing.get();
@@ -140,6 +140,10 @@ public class ConfirmOrchestrator {
             .build();
     ShipmentEntity savedShipment = shipmentRepository.save(shipment);
     shipmentService.recordInitialStatus(savedShipment.getId(), ShipmentStatus.CONFIRMED, null);
+
+    if (cartSessionId != null && !cartSessionId.isBlank()) {
+      cartService.clearAnonCart(cartSessionId);
+    }
 
     log.info(
         "Guest order placed: orderId={}, shipmentId={}",
