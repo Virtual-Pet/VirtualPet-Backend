@@ -73,6 +73,13 @@ public class OrderEntity {
   @Column(name = "updated_at")
   private Instant updatedAt;
 
+  @Column(name = "requires_invoice", nullable = false)
+  @Builder.Default
+  private boolean requiresInvoice = false;
+
+  @Column(name = "billing_cuit", length = 20)
+  private String billingCuit;
+
   @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   private List<OrderItemEntity> items = new ArrayList<>();

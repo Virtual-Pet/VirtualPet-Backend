@@ -19,7 +19,9 @@ public final class ShipmentDTO {
       String contactName,
       String contactEmail,
       java.math.BigDecimal total,
-      Address shippingAddress) {}
+      Address shippingAddress,
+      boolean requiresInvoice,
+      String billingCuit) {}
 
 
   public record ShipmentStatusEventDTO(ShipmentStatus status, Instant at) {}
