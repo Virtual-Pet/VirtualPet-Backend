@@ -31,6 +31,7 @@ public class DevDataSeeder implements ApplicationRunner {
     seedAdmin();
     seedEmployee();
     seedCustomer();
+    seedRider();
     log.info("Dev users ready.");
   }
 
@@ -39,14 +40,13 @@ public class DevDataSeeder implements ApplicationRunner {
     if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
       return;
     }
-    UserEntity user =
-        userRepository.save(
-            UserEntity.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode("admin1234"))
-                .role(UserRole.ROLE_ADMIN)
-                .active(true)
-                .build());
+    UserEntity user = userRepository.save(
+        UserEntity.builder()
+            .email(email)
+            .passwordHash(passwordEncoder.encode("admin1234"))
+            .role(UserRole.ROLE_ADMIN)
+            .active(true)
+            .build());
     employeeRepository.save(
         EmployeeEntity.builder()
             .userId(user.getId())
@@ -63,14 +63,13 @@ public class DevDataSeeder implements ApplicationRunner {
     if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
       return;
     }
-    UserEntity user =
-        userRepository.save(
-            UserEntity.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode("staff1234"))
-                .role(UserRole.ROLE_EMPLOYEE)
-                .active(true)
-                .build());
+    UserEntity user = userRepository.save(
+        UserEntity.builder()
+            .email(email)
+            .passwordHash(passwordEncoder.encode("staff1234"))
+            .role(UserRole.ROLE_EMPLOYEE)
+            .active(true)
+            .build());
     employeeRepository.save(
         EmployeeEntity.builder()
             .userId(user.getId())
@@ -87,16 +86,39 @@ public class DevDataSeeder implements ApplicationRunner {
     if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
       return;
     }
-    UserEntity user =
-        userRepository.save(
-            UserEntity.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode("cliente1234"))
-                .role(UserRole.ROLE_CUSTOMER)
-                .active(true)
-                .build());
+    UserEntity user = userRepository.save(
+        UserEntity.builder()
+            .email(email)
+            .passwordHash(passwordEncoder.encode("cliente1234"))
+            .role(UserRole.ROLE_CUSTOMER)
+            .active(true)
+            .build());
     customerRepository.save(
         CustomerEntity.builder().userId(user.getId()).name("Cliente").lastname("Demo").build());
     log.info("Seeded customer {} / cliente1234", email);
   }
+
+  private void seedRider() {
+    String email = "rider@virtualpet.com";
+    if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+      return;
+    }
+    UserEntity user = userRepository.save(
+        UserEntity.builder()
+            .email(email)
+            .passwordHash(passwordEncoder.encode("rider1234"))
+            .role(UserRole.ROLE_RIDER)
+            .active(true)
+            .build());
+    employeeRepository.save(
+        EmployeeEntity.builder()
+            .userId(user.getId())
+            .name("Repartidor")
+            .lastname("Demo")
+            .legajo("RDR-0001")
+            .warehouseId(1)
+            .build());
+    log.info("Seeded rider {} / rider1234", email);
+  }
+
 }
