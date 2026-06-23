@@ -136,8 +136,8 @@ class OrderControllerTest {
                             .formatted(email, password)))
             .andReturn();
     JsonNode loginJson = objectMapper.readTree(login.getResponse().getContentAsString());
-    accessToken = loginJson.get("accessToken").asText();
-    userId = UUID.fromString(loginJson.get("user").get("id").asText());
+    accessToken = loginJson.get("accessToken").asString();
+    userId = UUID.fromString(loginJson.get("user").get("id").asString());
 
     mockMvc
         .perform(
@@ -155,7 +155,7 @@ class OrderControllerTest {
         objectMapper
             .readTree(start.getResponse().getContentAsString())
             .get("checkoutSessionId")
-            .asText();
+            .asString();
 
     mockMvc
         .perform(
@@ -176,7 +176,7 @@ class OrderControllerTest {
         objectMapper
             .readTree(intent.getResponse().getContentAsString())
             .get("providerPaymentId")
-            .asText();
+            .asString();
 
     mockMvc
         .perform(post("/api/v1/fake-provider/payments/" + providerPaymentId + "/approve"))
@@ -195,7 +195,7 @@ class OrderControllerTest {
             objectMapper
                 .readTree(confirm.getResponse().getContentAsString())
                 .get("orderId")
-                .asText());
+                .asString());
   }
 
   @Test
@@ -318,7 +318,10 @@ class OrderControllerTest {
                             .formatted(otherEmail, otherPwd)))
             .andReturn();
     String otherToken =
-        objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        objectMapper
+            .readTree(login.getResponse().getContentAsString())
+            .get("accessToken")
+            .asString();
 
     mockMvc
         .perform(get("/api/v1/orders/" + orderId).header("Authorization", "Bearer " + otherToken))

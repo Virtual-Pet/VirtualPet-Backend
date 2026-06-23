@@ -204,7 +204,7 @@ class ShipmentControllerTest {
                 .header("Authorization", "Bearer " + employeeToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"status\":\"CANCELLED\"}"))
-        .andExpect(status().isUnprocessableEntity());
+        .andExpect(status().isUnprocessableContent());
 
     assertThat(shipmentRepository.findById(shipmentId).orElseThrow().getStatus())
         .isEqualTo(ShipmentStatus.CONFIRMED);
@@ -312,7 +312,7 @@ class ShipmentControllerTest {
             .andExpect(status().isOk())
             .andReturn();
     JsonNode json = objectMapper.readTree(result.getResponse().getContentAsString());
-    return json.get("accessToken").asText();
+    return json.get("accessToken").asString();
   }
 
   private void runCheckout(UUID skuId) throws Exception {
@@ -333,7 +333,7 @@ class ShipmentControllerTest {
         objectMapper
             .readTree(start.getResponse().getContentAsString())
             .get("checkoutSessionId")
-            .asText();
+            .asString();
 
     mockMvc
         .perform(
@@ -354,7 +354,7 @@ class ShipmentControllerTest {
         objectMapper
             .readTree(intent.getResponse().getContentAsString())
             .get("providerPaymentId")
-            .asText();
+            .asString();
 
     mockMvc
         .perform(post("/api/v1/fake-provider/payments/" + providerPaymentId + "/approve"))

@@ -2,22 +2,22 @@ package com.virtualpet.cart.service;
 
 import com.virtualpet.cart.domain.Cart;
 import com.virtualpet.cart.domain.CartItem;
-import com.virtualpet.cart.dto.CartDTO.CartItemQuantityDTO;
-import com.virtualpet.cart.dto.CartDTO.TotalsDTO;
-import com.virtualpet.cart.dto.CartDTO.CartViewDTO;
 import com.virtualpet.cart.dto.CartDTO.CartItemDTO;
+import com.virtualpet.cart.dto.CartDTO.CartItemQuantityDTO;
+import com.virtualpet.cart.dto.CartDTO.CartViewDTO;
+import com.virtualpet.cart.dto.CartDTO.TotalsDTO;
 import com.virtualpet.catalog.domain.ProductEntity;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -145,10 +145,12 @@ public class CartService {
       if (existing != null) {
         existing.setQuantity(existing.getQuantity() + anonItem.getQuantity());
       } else {
-        user.getItems().add(CartItem.builder()
-            .skuId(anonItem.getSkuId())
-            .quantity(anonItem.getQuantity())
-            .build());
+        user.getItems()
+            .add(
+                CartItem.builder()
+                    .skuId(anonItem.getSkuId())
+                    .quantity(anonItem.getQuantity())
+                    .build());
       }
     }
     saveCart(userId, user);
@@ -197,7 +199,7 @@ public class CartService {
       String json = objectMapper.writeValueAsString(cart);
       redisTemplate
           .opsForValue()
-          .set(key(userId), json, properties.getCart().getTtlHours(), TimeUnit.HOURS);
+          .set(key(userId), json, Duration.ofHours(properties.getCart().getTtlHours()));
     } catch (JacksonException e) {
       throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist cart");
     }
@@ -208,7 +210,7 @@ public class CartService {
       String json = objectMapper.writeValueAsString(cart);
       redisTemplate
           .opsForValue()
-          .set(anonKey(sessionId), json, properties.getCart().getTtlHours(), TimeUnit.HOURS);
+          .set(anonKey(sessionId), json, Duration.ofHours(properties.getCart().getTtlHours()));
     } catch (JacksonException e) {
       throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist cart");
     }
@@ -233,15 +235,12 @@ public class CartService {
         cart.getItems().stream().map(item -> toItemDto(item, byId.get(item.getSkuId()))).toList();
 
     BigDecimal itemsTotal =
-        dtoItems.stream()
-            .map(CartItemDTO::subtotal)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        dtoItems.stream().map(CartItemDTO::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     TotalsDTO totals = new TotalsDTO(itemsTotal, SHIPPING, itemsTotal.add(SHIPPING));
     return new CartViewDTO(dtoItems, totals, CURRENCY);
   }
 
-  private CartItemDTO toItemDto(
-      CartItem item, ProductVariantEntity variant) {
+  private CartItemDTO toItemDto(CartItem item, ProductVariantEntity variant) {
     BigDecimal unitPrice = variant == null ? BigDecimal.ZERO : variant.getPrice();
     BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
     ProductEntity product = variant == null ? null : variant.getProduct();

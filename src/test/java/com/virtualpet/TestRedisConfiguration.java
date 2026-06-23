@@ -74,17 +74,6 @@ public class TestRedisConfiguration {
         .set(
             ArgumentMatchers.anyString(),
             ArgumentMatchers.anyString(),
-            ArgumentMatchers.anyLong(),
-            ArgumentMatchers.any(TimeUnit.class));
-    doAnswer(
-            inv -> {
-              store.put(inv.getArgument(0), inv.getArgument(1));
-              return null;
-            })
-        .when(ops)
-        .set(
-            ArgumentMatchers.anyString(),
-            ArgumentMatchers.anyString(),
             ArgumentMatchers.any(Duration.class));
 
     when(template.delete(ArgumentMatchers.anyString()))

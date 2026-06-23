@@ -131,7 +131,8 @@ public class PaymentService {
       maybeSession = Optional.of(sessionService.loadOwned(sessionId, userId));
     } catch (ApiException ex) {
       if (ex.getStatus() == HttpStatus.NOT_FOUND) {
-        log.warn("Session {} not found in Redis (may have expired); checking DB for existing order",
+        log.warn(
+            "Session {} not found in Redis (may have expired); checking DB for existing order",
             sessionId);
         maybeSession = Optional.empty();
       } else {
@@ -141,20 +142,30 @@ public class PaymentService {
 
     // If the session is gone from Redis, check whether an order already exists.
     if (maybeSession.isEmpty()) {
-      return orderRepository.findBySessionId(sessionId)
-          .map(order -> {
-            UUID shipmentId = shipmentRepository.findByOrderId(order.getId())
-                .map(ShipmentEntity::getId).orElse(null);
-            OrderConfirmationResponseDTO body =
-                new OrderConfirmationResponseDTO(order.getId(), shipmentId, order.getStatus().name(), null);
-            return new ConfirmOutcome(HttpStatus.CREATED, body);
-          })
-          .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
-              "Checkout session expired and no order was found for it"));
+      return orderRepository
+          .findBySessionId(sessionId)
+          .map(
+              order -> {
+                UUID shipmentId =
+                    shipmentRepository
+                        .findByOrderId(order.getId())
+                        .map(ShipmentEntity::getId)
+                        .orElse(null);
+                OrderConfirmationResponseDTO body =
+                    new OrderConfirmationResponseDTO(
+                        order.getId(), shipmentId, order.getStatus().name(), null);
+                return new ConfirmOutcome(HttpStatus.CREATED, body);
+              })
+          .orElseThrow(
+              () ->
+                  new ApiException(
+                      HttpStatus.NOT_FOUND,
+                      "Checkout session expired and no order was found for it"));
     }
 
     CheckoutSession session = maybeSession.get();
-    PaymentEntity payment = paymentRepository.findFirstBySessionIdOrderByCreatedAtDesc(sessionId).orElse(null);
+    PaymentEntity payment =
+        paymentRepository.findFirstBySessionIdOrderByCreatedAtDesc(sessionId).orElse(null);
 
     // No payment intent: order placed without upfront payment (cash, transfer, etc.)
     if (payment == null) {
@@ -169,8 +180,12 @@ public class PaymentService {
         yield new ConfirmOutcome(HttpStatus.CREATED, body);
       }
       case FAILED -> new ConfirmOutcome(HttpStatus.PAYMENT_REQUIRED, null);
-      case PENDING, PROCESSING -> {
-        // Auto-approve any payment so the order is created
+      case PROCESSING ->
+          // Provider is still settling the payment. Leave the session awaiting and tell the
+          // client to retry once the webhook resolves the payment to PAID or FAILED.
+          new ConfirmOutcome(HttpStatus.ACCEPTED, null);
+      case PENDING -> {
+        // No webhook arrived yet: auto-approve the pending payment so the order is created
         // immediately without requiring a separate webhook call.
         log.info("Auto-approving payment {} for session {}", payment.getId(), sessionId);
         payment.setStatus(PaymentStatus.PAID);

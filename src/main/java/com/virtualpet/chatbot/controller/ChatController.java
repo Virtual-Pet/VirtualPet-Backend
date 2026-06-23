@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * SSE endpoint del chatbot. Accesible sin auth (guests) y con JWT (autenticados).
- * La respuesta llega completa en un único evento SSE porque la llamada a Gemini es síncrona;
- * el widget frontend la recibe y muestra sin cambios en el protocolo.
+ * SSE endpoint del chatbot. Accesible sin auth (guests) y con JWT (autenticados). La respuesta
+ * llega completa en un único evento SSE porque la llamada a Gemini es síncrona; el widget frontend
+ * la recibe y muestra sin cambios en el protocolo.
  */
 @RestController
 @RequestMapping("/api/v1/chat")

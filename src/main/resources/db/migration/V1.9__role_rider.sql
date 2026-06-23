@@ -1,5 +1,5 @@
 -- =============================================================================
--- Flyway Migration: V1.8__Role_Rider.sql
+-- Flyway Migration: V1.9__Role_Rider.sql
 -- Descripción: Agrega el rol ROLE_RIDER a la tabla users y crea la tabla 
 --              específica de extensión para los repartidores.
 -- =============================================================================

@@ -34,8 +34,8 @@ public class GuestCheckoutController {
 
     ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.CREATED);
     if (cartSessionId != null) {
-      builder.header(HttpHeaders.SET_COOKIE,
-          CartSessionCookie.clear(properties.getCart()).toString());
+      builder.header(
+          HttpHeaders.SET_COOKIE, CartSessionCookie.clear(properties.getCart()).toString());
     }
     return builder.body(result);
   }
