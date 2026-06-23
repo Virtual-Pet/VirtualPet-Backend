@@ -55,22 +55,22 @@ public class ChatService {
           new GeminiDTO.ChatRequest(GeminiDTO.SystemInstruction.of(systemPrompt), contents, tools);
       var response = geminiClient.chat(request);
 
-      if (response.candidates() == null || response.candidates().isEmpty()) {
+      if (response == null || response.candidates() == null || response.candidates().isEmpty()) {
         break;
       }
       var candidate = response.candidates().getFirst();
-      if (candidate.content() == null || candidate.content().parts() == null) {
-        log.warn("Gemini returned null content, finishReason={}", candidate.finishReason());
+      if (candidate == null || candidate.content() == null || candidate.content().parts() == null) {
+        log.warn("Gemini returned null content, finishReason={}", candidate != null ? candidate.finishReason() : "null candidate");
         break;
       }
       var parts = candidate.content().parts();
 
-      var functionCallPart = parts.stream().filter(p -> p.functionCall() != null).findFirst();
+      var functionCallPart = parts.stream().filter(p -> p != null && p.functionCall() != null).findFirst();
 
       if (functionCallPart.isEmpty()) {
         String text =
             parts.stream()
-                .filter(p -> p.text() != null)
+                .filter(p -> p != null && p.text() != null)
                 .map(GeminiDTO.Part::text)
                 .findFirst()
                 .orElse("");

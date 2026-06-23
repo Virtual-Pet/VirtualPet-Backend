@@ -84,9 +84,26 @@ public class ChatToolRegistry {
 
   private String runRequestInvoice(Map<String, Object> args, UUID userId) {
     try {
-      String orderId = (String) args.get("orderId");
+      String orderIdStr = (String) args.get("orderId");
       String cuit = (String) args.get("cuit");
-      orderService.requestInvoice(UUID.fromString(orderId), cuit, userId);
+      
+      UUID orderId;
+      try {
+        orderId = UUID.fromString(orderIdStr);
+      } catch (IllegalArgumentException e) {
+        // Fallback: tratar como short ID y buscar la orden activa que coincida
+        var orders = orderService.getActiveOrdersForChatbot(userId);
+        var matched = orders.stream()
+            .filter(o -> o.orderId().toString().toUpperCase().startsWith(orderIdStr.toUpperCase()))
+            .findFirst();
+        if (matched.isPresent()) {
+          orderId = matched.get().orderId();
+        } else {
+          return "Error: No se encontró una orden activa con el ID " + orderIdStr;
+        }
+      }
+
+      orderService.requestInvoice(orderId, cuit, userId);
       return "Solicitud de factura registrada para la orden " + orderId + " al CUIT " + cuit + ".";
     } catch (Exception e) {
       return "Error al registrar la solicitud: " + e.getMessage();
