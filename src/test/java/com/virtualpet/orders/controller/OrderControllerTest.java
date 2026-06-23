@@ -280,7 +280,7 @@ class OrderControllerTest {
         .executeWithoutResult(
             tx -> {
               ShipmentEntity s = shipmentRepository.findByOrderId(orderId).orElseThrow();
-              s.setStatus(ShipmentStatus.IN_TRANSIT);
+              s.setStatus(ShipmentStatus.ASSIGNED);
               shipmentRepository.save(s);
             });
 

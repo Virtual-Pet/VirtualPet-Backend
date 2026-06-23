@@ -159,9 +159,9 @@ class ShipmentControllerTest {
             patch("/api/v1/shipments/" + shipmentId)
                 .header("Authorization", "Bearer " + employeeToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"status\":\"IN_TRANSIT\"}"))
+                .content("{\"status\":\"ASSIGNED\"}"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("IN_TRANSIT"));
+        .andExpect(jsonPath("$.status").value("ASSIGNED"));
 
     mockMvc
         .perform(
@@ -195,7 +195,7 @@ class ShipmentControllerTest {
             patch("/api/v1/shipments/" + shipmentId)
                 .header("Authorization", "Bearer " + employeeToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"status\":\"IN_TRANSIT\"}"))
+                .content("{\"status\":\"ASSIGNED\"}"))
         .andExpect(status().isConflict());
 
     mockMvc
