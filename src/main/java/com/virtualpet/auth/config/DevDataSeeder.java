@@ -31,7 +31,7 @@ public class DevDataSeeder implements ApplicationRunner {
     seedAdmin();
     seedEmployee();
     seedCustomer();
-    seedRider();
+    // Riders are seeded by Flyway migration V2.0__seed_riders.sql, not here.
     log.info("Dev users ready.");
   }
 
@@ -99,29 +99,5 @@ public class DevDataSeeder implements ApplicationRunner {
     customerRepository.save(
         CustomerEntity.builder().userId(user.getId()).name("Cliente").lastname("Demo").build());
     log.info("Seeded customer {} / cliente1234", email);
-  }
-
-  private void seedRider() {
-    String email = "rider@virtualpet.com";
-    if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
-      return;
-    }
-    UserEntity user =
-        userRepository.save(
-            UserEntity.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode("rider1234"))
-                .role(UserRole.ROLE_RIDER)
-                .active(true)
-                .build());
-    employeeRepository.save(
-        EmployeeEntity.builder()
-            .userId(user.getId())
-            .name("Repartidor")
-            .lastname("Demo")
-            .legajo("RDR-0001")
-            .warehouseId(1)
-            .build());
-    log.info("Seeded rider {} / rider1234", email);
   }
 }
