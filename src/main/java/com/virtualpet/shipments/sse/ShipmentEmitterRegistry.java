@@ -1,6 +1,6 @@
 package com.virtualpet.shipments.sse;
 
-import tools.jackson.core.JsonProcessingException;
+
 import tools.jackson.databind.ObjectMapper;
 import com.virtualpet.shipments.event.ShipmentStatusChangedEvent;
 import java.io.IOException;
@@ -42,7 +42,7 @@ public class ShipmentEmitterRegistry {
                   event.newStatus().name(),
                   event.previousStatus().name(),
                   event.updatedAt().toString()));
-    } catch (JsonProcessingException e) {
+    } catch (Exception e) {
       log.error("Failed to serialize ShipmentStatusChangedEvent", e);
       return;
     }
