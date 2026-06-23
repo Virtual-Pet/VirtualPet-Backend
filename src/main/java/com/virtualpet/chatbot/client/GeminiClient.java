@@ -47,7 +47,8 @@ public class GeminiClient {
             .build();
 
     for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+      HttpResponse<String> response =
+          httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
       if (response.statusCode() == 200) {
         log.warn("Gemini raw response: {}", response.body().replace("\n", "").replace("  ", " "));
         return objectMapper.readValue(response.body(), GeminiDTO.ChatResponse.class);

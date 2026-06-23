@@ -46,7 +46,7 @@ SELECT
     o.shipping_address
 FROM shipments.shipments s
          JOIN orders.orders o ON s.order_id = o.id
-WHERE s.status = 'IN_TRANSIT';
+WHERE s.status = 'ASSIGNED';
 
 -- =============================================================================
 -- VISTA: v_operator_active_assignments (Dashboard de operario logístico)

@@ -14,14 +14,17 @@ import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.orders.repository.PaymentRepository;
 import com.virtualpet.shipments.domain.ShipmentEntity;
 import com.virtualpet.shipments.domain.ShipmentStatus;
+import com.virtualpet.shipments.event.ShipmentStatusChangedEvent;
 import com.virtualpet.shipments.repository.ShipmentRepository;
 import com.virtualpet.shipments.service.ShipmentService;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +47,7 @@ public class CancelOrchestrator {
   private final PaymentRepository paymentRepository;
   private final InventoryService inventoryService;
   private final ShipmentService shipmentService;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public OrderCancellationDTO cancel(OrderEntity order, String reason) {
@@ -76,6 +80,13 @@ public class CancelOrchestrator {
     shipmentRepository.save(shipment);
     shipmentService.recordCancellation(
         shipment.getId(), previousShipmentStatus, reason, order.getUserId());
+    eventPublisher.publishEvent(
+        new ShipmentStatusChangedEvent(
+            shipment.getId(),
+            shipment.getOrderId(),
+            ShipmentStatus.CANCELLED,
+            previousShipmentStatus,
+            Instant.now()));
 
     Map<UUID, Integer> restockLines = new HashMap<>();
     for (OrderItemEntity item : order.getItems()) {

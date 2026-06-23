@@ -34,6 +34,14 @@ public final class ShipmentSpecifications {
     };
   }
 
+  /** Filters to shipments assigned to the given rider. */
+  public static Specification<ShipmentEntity> byOperatorId(UUID operatorId) {
+    if (operatorId == null) {
+      return null;
+    }
+    return (root, query, cb) -> cb.equal(root.get("operatorId"), operatorId);
+  }
+
   /** Cursor keyset using the immutable createdAt + id tiebreaker. */
   public static Specification<ShipmentEntity> afterCursor(Cursor cursor) {
     if (cursor == null) {

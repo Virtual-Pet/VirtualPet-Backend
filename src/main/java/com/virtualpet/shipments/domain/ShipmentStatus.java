@@ -1,10 +1,11 @@
 package com.virtualpet.shipments.domain;
 
-/** Spec-aligned shipment lifecycle. */
+/** Shipment lifecycle. */
 public enum ShipmentStatus {
   CONFIRMED,
   PREPARED,
-  IN_TRANSIT,
+  ASSIGNED,
   DELIVERED,
+  RETURNED,
   CANCELLED
 }
