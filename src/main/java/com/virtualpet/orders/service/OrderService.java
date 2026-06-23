@@ -121,7 +121,7 @@ public class OrderService {
     }
     if (order.getStatus() == OrderStatus.CANCELLED) {
       throw new ApiException(
-          HttpStatus.UNPROCESSABLE_ENTITY, "Cannot request invoice for a cancelled order");
+          HttpStatus.UNPROCESSABLE_CONTENT, "Cannot request invoice for a cancelled order");
     }
     order.setRequiresInvoice(true);
     order.setBillingCuit(cuit);
@@ -135,13 +135,9 @@ public class OrderService {
     Specification<OrderEntity> spec =
         Specification.allOf(
             OrderSpecifications.byUser(userId),
-            (root, query, cb) ->
-                cb.notEqual(root.get("status"), OrderStatus.CANCELLED));
+            (root, query, cb) -> cb.notEqual(root.get("status"), OrderStatus.CANCELLED));
     Sort sort = Sort.by(Sort.Order.desc("createdAt"));
-    return orderRepository
-        .findAll(spec, PageRequest.of(0, 10, sort))
-        .getContent()
-        .stream()
+    return orderRepository.findAll(spec, PageRequest.of(0, 10, sort)).getContent().stream()
         .map(this::toSummary)
         .toList();
   }

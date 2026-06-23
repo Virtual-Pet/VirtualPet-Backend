@@ -11,8 +11,6 @@ import com.virtualpet.TestRedisConfiguration;
 import com.virtualpet.catalog.domain.CategoryEntity;
 import com.virtualpet.catalog.domain.ProductEntity;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
-import com.virtualpet.catalog.repository.ProductRepository;
-import com.virtualpet.catalog.repository.ProductVariantRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
@@ -39,8 +37,6 @@ class CatalogControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
-  @Autowired private ProductRepository productRepository;
-  @Autowired private ProductVariantRepository variantRepository;
 
   @PersistenceContext private EntityManager em;
 
@@ -146,7 +142,7 @@ class CatalogControllerTest {
             .andReturn();
 
     JsonNode body = objectMapper.readTree(firstPage.getResponse().getContentAsString());
-    String cursor = body.get("nextCursor").asText();
+    String cursor = body.get("nextCursor").asString();
 
     mockMvc
         .perform(get("/api/v1/products").param("limit", "1").param("cursor", cursor))

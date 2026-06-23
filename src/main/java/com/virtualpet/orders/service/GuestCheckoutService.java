@@ -29,7 +29,8 @@ public class GuestCheckoutService {
   private final ConfirmOrchestrator confirmOrchestrator;
 
   @Transactional
-  public OrderConfirmationResponseDTO checkout(GuestCheckoutRequestDTO request, String cartSessionId) {
+  public OrderConfirmationResponseDTO checkout(
+      GuestCheckoutRequestDTO request, String cartSessionId) {
     Map<UUID, ProductVariantEntity> variants = fetchAndValidate(request.lineItems());
 
     List<SessionLineItem> lineItems =

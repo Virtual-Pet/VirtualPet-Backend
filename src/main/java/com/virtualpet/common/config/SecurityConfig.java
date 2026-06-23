@@ -67,7 +67,9 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.DELETE, "/api/v1/cart/items/*")
                     .permitAll()
                     .requestMatchers(
-                        HttpMethod.POST, "/api/v1/payments/webhook/**", "/api/v1/fake-provider/**",
+                        HttpMethod.POST,
+                        "/api/v1/payments/webhook/**",
+                        "/api/v1/fake-provider/**",
                         "/api/v1/checkout/guest")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/orders/*/track")

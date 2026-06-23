@@ -23,7 +23,6 @@ public final class ShipmentDTO {
       boolean requiresInvoice,
       String billingCuit) {}
 
-
   public record ShipmentStatusEventDTO(ShipmentStatus status, Instant at) {}
 
   public record ShipmentResponseDTO(

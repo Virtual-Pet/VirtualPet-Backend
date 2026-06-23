@@ -1,6 +1,5 @@
 package com.virtualpet.chatbot.service;
 
-import tools.jackson.databind.ObjectMapper;
 import com.virtualpet.chatbot.client.GeminiClient;
 import com.virtualpet.chatbot.client.GeminiDTO;
 import com.virtualpet.chatbot.memory.RedisChatMemory;
@@ -28,15 +27,13 @@ public class ChatService {
   private static final int MAX_TOOL_ROUNDS = 5;
 
   // Patterns para parsear tool calls en formato ReAct emitidos como texto plano
-  private static final Pattern ACTION_PATTERN =
-      Pattern.compile("\"action\"\\s*:\\s*\"([^\"]+)\"");
+  private static final Pattern ACTION_PATTERN = Pattern.compile("\"action\"\\s*:\\s*\"([^\"]+)\"");
   private static final Pattern STRING_FIELD_PATTERN =
       Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"([^\"]+)\"");
 
   private final GeminiClient geminiClient;
   private final RedisChatMemory chatMemory;
   private final ChatToolRegistry toolRegistry;
-  private final ObjectMapper objectMapper;
 
   @Value("classpath:chatbot/system-prompt.txt")
   private Resource systemPromptResource;
@@ -54,8 +51,8 @@ public class ChatService {
     String finalText = null;
 
     for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      var request = new GeminiDTO.ChatRequest(
-          GeminiDTO.SystemInstruction.of(systemPrompt), contents, tools);
+      var request =
+          new GeminiDTO.ChatRequest(GeminiDTO.SystemInstruction.of(systemPrompt), contents, tools);
       var response = geminiClient.chat(request);
 
       if (response.candidates() == null || response.candidates().isEmpty()) {
@@ -71,21 +68,29 @@ public class ChatService {
       var functionCallPart = parts.stream().filter(p -> p.functionCall() != null).findFirst();
 
       if (functionCallPart.isEmpty()) {
-        String text = parts.stream()
-            .filter(p -> p.text() != null)
-            .map(GeminiDTO.Part::text)
-            .findFirst()
-            .orElse("");
+        String text =
+            parts.stream()
+                .filter(p -> p.text() != null)
+                .map(GeminiDTO.Part::text)
+                .findFirst()
+                .orElse("");
 
         // Thinking models sometimes emit tool calls as plain text (ReAct JSON format)
         // instead of using the structured function calling API. Try to parse and execute.
         if (userId != null) {
           var textToolCall = tryParseTextToolCall(text);
           if (textToolCall != null) {
-            log.warn("Model leaked text-based tool call for '{}', executing as fallback", textToolCall.name());
-            String toolResult = toolRegistry.execute(textToolCall.name(), textToolCall.args(), userId);
-            contents.add(GeminiDTO.Content.modelFunctionCall(textToolCall.name(), textToolCall.args(), null));
-            contents.add(GeminiDTO.Content.userFunctionResponse(textToolCall.name(), Map.of("result", toolResult)));
+            log.warn(
+                "Model leaked text-based tool call for '{}', executing as fallback",
+                textToolCall.name());
+            String toolResult =
+                toolRegistry.execute(textToolCall.name(), textToolCall.args(), userId);
+            contents.add(
+                GeminiDTO.Content.modelFunctionCall(
+                    textToolCall.name(), textToolCall.args(), null));
+            contents.add(
+                GeminiDTO.Content.userFunctionResponse(
+                    textToolCall.name(), Map.of("result", toolResult)));
             continue;
           }
         }
@@ -118,9 +123,8 @@ public class ChatService {
       Pattern.compile("\"(getMyOrders|requestInvoice)\"\\s*:\\s*\\{");
 
   /**
-   * Parsea tool calls textuales en dos formatos que emite gemini-3.1-flash-lite:
-   *   1. ReAct:   {"action": "funcName", "action_input": {...}}
-   *   2. Directo: {"funcName": {...args}}
+   * Parsea tool calls textuales en dos formatos que emite gemini-3.1-flash-lite: 1. ReAct:
+   * {"action": "funcName", "action_input": {...}} 2. Directo: {"funcName": {...args}}
    */
   private TextToolCall tryParseTextToolCall(String text) {
     if (text == null || text.isBlank()) return null;

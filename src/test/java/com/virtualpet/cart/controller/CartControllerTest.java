@@ -12,8 +12,6 @@ import com.virtualpet.TestRedisConfiguration;
 import com.virtualpet.catalog.domain.CategoryEntity;
 import com.virtualpet.catalog.domain.ProductEntity;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
-import com.virtualpet.catalog.repository.ProductRepository;
-import com.virtualpet.catalog.repository.ProductVariantRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.http.Cookie;
@@ -41,8 +39,6 @@ class CartControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
-  @Autowired private ProductRepository productRepository;
-  @Autowired private ProductVariantRepository variantRepository;
 
   @PersistenceContext private EntityManager em;
 
@@ -117,7 +113,7 @@ class CartControllerTest {
             .andExpect(status().isOk())
             .andReturn();
     JsonNode tokens = objectMapper.readTree(loginResult.getResponse().getContentAsString());
-    accessToken = tokens.get("accessToken").asText();
+    accessToken = tokens.get("accessToken").asString();
   }
 
   @Test
@@ -165,7 +161,7 @@ class CartControllerTest {
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"quantity\":0}"))
-        .andExpect(status().isUnprocessableEntity());
+        .andExpect(status().isUnprocessableContent());
   }
 
   @Test
@@ -251,7 +247,7 @@ class CartControllerTest {
         objectMapper
             .readTree(loginResult.getResponse().getContentAsString())
             .get("accessToken")
-            .asText();
+            .asString();
 
     // Authenticated cart now holds the merged item
     mockMvc

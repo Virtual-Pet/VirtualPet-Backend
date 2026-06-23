@@ -67,13 +67,9 @@ public final class CheckoutDTO {
       UUID orderId, UUID shipmentId, String status, String trackingToken) {}
 
   public record GuestInfoDTO(
-      @NotBlank String firstName,
-      @NotBlank String lastName,
-      @NotBlank @Email String email) {}
+      @NotBlank String firstName, @NotBlank String lastName, @NotBlank @Email String email) {}
 
-  public record GuestLineItemDTO(
-      @NotNull UUID skuId,
-      @Min(1) int quantity) {}
+  public record GuestLineItemDTO(@NotNull UUID skuId, @Min(1) int quantity) {}
 
   public record GuestCheckoutRequestDTO(
       @Valid @NotNull GuestInfoDTO guest,

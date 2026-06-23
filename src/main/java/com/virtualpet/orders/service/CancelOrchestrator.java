@@ -79,7 +79,7 @@ public class CancelOrchestrator {
 
     Map<UUID, Integer> restockLines = new HashMap<>();
     for (OrderItemEntity item : order.getItems()) {
-      restockLines.merge(item.getProductVariantId(), item.getQuantity(), Integer::sum);
+      restockLines.merge(item.getProductVariantId(), item.getQuantity(), (a, b) -> a + b);
     }
     inventoryService.restock(restockLines);
 

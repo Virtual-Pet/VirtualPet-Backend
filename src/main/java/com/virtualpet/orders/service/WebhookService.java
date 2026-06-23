@@ -85,8 +85,11 @@ public class WebhookService {
       maybeSession = Optional.of(sessionService.loadById(payment.getSessionId()));
     } catch (ApiException ex) {
       if (ex.getStatus() == HttpStatus.NOT_FOUND) {
-        log.warn("Session {} expired from Redis when webhook arrived for payment {}; "
-            + "attempting confirm via DB order lookup", payment.getSessionId(), payment.getId());
+        log.warn(
+            "Session {} expired from Redis when webhook arrived for payment {}; "
+                + "attempting confirm via DB order lookup",
+            payment.getSessionId(),
+            payment.getId());
         maybeSession = Optional.empty();
       } else {
         throw ex;
@@ -100,8 +103,10 @@ public class WebhookService {
       if (orderExists) {
         log.info("Order already exists for expired session {}; skipping", payment.getSessionId());
       } else {
-        log.error("Session {} expired and no order exists — order cannot be created by webhook. "
-            + "User must re-checkout.", payment.getSessionId());
+        log.error(
+            "Session {} expired and no order exists — order cannot be created by webhook. "
+                + "User must re-checkout.",
+            payment.getSessionId());
       }
       return;
     }
