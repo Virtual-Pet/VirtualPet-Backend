@@ -1,7 +1,7 @@
 package com.virtualpet.shipments.sse;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JsonProcessingException;
+import tools.jackson.databind.ObjectMapper;
 import com.virtualpet.shipments.event.ShipmentStatusChangedEvent;
 import java.io.IOException;
 import java.util.UUID;
