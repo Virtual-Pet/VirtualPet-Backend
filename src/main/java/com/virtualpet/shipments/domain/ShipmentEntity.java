@@ -54,6 +54,9 @@ public class ShipmentEntity {
   @Column(name = "last_attempt_at")
   private Instant lastAttemptAt;
 
+  @Column(name = "operator_id")
+  private UUID operatorId;
+
   @Version private Long version;
 
   @CreationTimestamp

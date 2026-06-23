@@ -18,4 +18,8 @@ public interface ShipmentRepository
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT s FROM ShipmentEntity s WHERE s.orderId = :orderId")
   Optional<ShipmentEntity> findByOrderIdForUpdate(@Param("orderId") UUID orderId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT s FROM ShipmentEntity s WHERE s.id = :id")
+  Optional<ShipmentEntity> findByIdForUpdate(@Param("id") UUID id);
 }

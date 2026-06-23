@@ -114,7 +114,7 @@ public class AuthService {
     switch (user.getRole()) {
       case ROLE_CUSTOMER ->
           customerProfileService.updateName(userId, request.firstName(), request.lastName());
-      case ROLE_EMPLOYEE, ROLE_ADMIN ->
+      case ROLE_EMPLOYEE, ROLE_ADMIN, ROLE_RIDER ->
           employeeProfileService.updateName(userId, request.firstName(), request.lastName());
     }
     return assembleUser(user);
@@ -174,7 +174,7 @@ public class AuthService {
         firstName = profile.getName();
         lastName = profile.getLastname();
       }
-      case ROLE_EMPLOYEE, ROLE_ADMIN -> {
+      case ROLE_EMPLOYEE, ROLE_ADMIN, ROLE_RIDER -> {
         EmployeeEntity profile = employeeProfileService.getByUserId(user.getId());
         firstName = profile.getName();
         lastName = profile.getLastname();

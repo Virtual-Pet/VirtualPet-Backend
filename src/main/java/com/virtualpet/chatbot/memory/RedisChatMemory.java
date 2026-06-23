@@ -1,17 +1,17 @@
 package com.virtualpet.chatbot.memory;
 
 import com.virtualpet.chatbot.client.GeminiDTO;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
- * Historial de conversación persistido en Redis con TTL de 30 minutos. Almacena pares
- * (user, model) como texto plano; el system prompt se agrega siempre en runtime.
+ * Historial de conversación persistido en Redis con TTL de 30 minutos. Almacena pares (user, model)
+ * como texto plano; el system prompt se agrega siempre en runtime.
  */
 @Component
 public class RedisChatMemory {
@@ -33,7 +33,8 @@ public class RedisChatMemory {
     return turns.stream()
         .flatMap(
             t ->
-                List.of(GeminiDTO.Content.user(t.userText()), GeminiDTO.Content.model(t.modelText()))
+                List.of(
+                    GeminiDTO.Content.user(t.userText()), GeminiDTO.Content.model(t.modelText()))
                     .stream())
         .toList();
   }
@@ -46,7 +47,9 @@ public class RedisChatMemory {
       turns = turns.subList(turns.size() - MAX_TURNS, turns.size());
     }
     try {
-      redis.opsForValue().set(key, objectMapper.writeValueAsString(turns), TTL_SECONDS, TimeUnit.SECONDS);
+      redis
+          .opsForValue()
+          .set(key, objectMapper.writeValueAsString(turns), Duration.ofSeconds(TTL_SECONDS));
     } catch (Exception ignored) {
     }
   }
@@ -55,7 +58,8 @@ public class RedisChatMemory {
     String json = redis.opsForValue().get(key);
     if (json == null || json.isBlank()) return new ArrayList<>();
     try {
-      return new ArrayList<>(objectMapper.readValue(json, new TypeReference<List<StoredTurn>>() {}));
+      return new ArrayList<>(
+          objectMapper.readValue(json, new TypeReference<List<StoredTurn>>() {}));
     } catch (Exception e) {
       return new ArrayList<>();
     }

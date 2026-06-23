@@ -1,6 +1,5 @@
 package com.virtualpet.chatbot.client;
 
-import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -10,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /** Llama a la API REST de Gemini (Google AI Studio) con Java HttpClient nativo. */
 @Component
@@ -17,8 +17,7 @@ public class GeminiClient {
 
   private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
 
-  private static final String BASE_URL =
-      "https://generativelanguage.googleapis.com/v1beta/models/";
+  private static final String BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
 
   private final HttpClient httpClient = HttpClient.newHttpClient();
   private final ObjectMapper objectMapper;
@@ -48,7 +47,8 @@ public class GeminiClient {
             .build();
 
     for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      var response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+      HttpResponse<String> response =
+          httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
       if (response.statusCode() == 200) {
         log.warn("Gemini raw response: {}", response.body().replace("\n", "").replace("  ", " "));
         return objectMapper.readValue(response.body(), GeminiDTO.ChatResponse.class);

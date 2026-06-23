@@ -31,6 +31,7 @@ public class DevDataSeeder implements ApplicationRunner {
     seedAdmin();
     seedEmployee();
     seedCustomer();
+    // Riders are seeded by Flyway migration V2.0__seed_riders.sql, not here.
     log.info("Dev users ready.");
   }
 

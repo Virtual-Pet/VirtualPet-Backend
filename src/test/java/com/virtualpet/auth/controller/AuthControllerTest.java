@@ -91,8 +91,8 @@ class AuthControllerTest {
             .andReturn();
 
     JsonNode tokens = objectMapper.readTree(loginResult.getResponse().getContentAsString());
-    String accessToken = tokens.get("accessToken").asText();
-    String refreshToken = tokens.get("refreshToken").asText();
+    String accessToken = tokens.get("accessToken").asString();
+    String refreshToken = tokens.get("refreshToken").asString();
 
     /* /me */
     mockMvc

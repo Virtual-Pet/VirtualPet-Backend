@@ -1,6 +1,9 @@
 package com.virtualpet.chatbot.tools;
 
 import com.virtualpet.chatbot.client.GeminiDTO;
+import com.virtualpet.chatbot.client.GeminiDTO.FunctionDeclaration;
+import com.virtualpet.chatbot.client.GeminiDTO.Tool;
+import com.virtualpet.orders.dto.OrderDTO.OrderSummaryDTO;
 import com.virtualpet.orders.service.OrderService;
 import java.util.List;
 import java.util.Map;
@@ -15,16 +18,16 @@ public class ChatToolRegistry {
 
   private final OrderService orderService;
 
-  public List<GeminiDTO.Tool> getToolDefinitions() {
-    var getMyOrders =
-        new GeminiDTO.FunctionDeclaration(
+  public List<Tool> getToolDefinitions() {
+    FunctionDeclaration getMyOrders =
+        new FunctionDeclaration(
             "getMyOrders",
             "Lista las órdenes activas (no canceladas) del usuario autenticado. "
                 + "Usarla cuando el usuario no sabe su orderId o quiere ver sus pedidos.",
             Map.of("type", "object", "properties", Map.of(), "required", List.of()));
 
-    var requestInvoice =
-        new GeminiDTO.FunctionDeclaration(
+    FunctionDeclaration requestInvoice =
+        new FunctionDeclaration(
             "requestInvoice",
             "Registra la solicitud de factura para una orden con el CUIT indicado. "
                 + "Solo llamarla cuando el usuario haya confirmado explícitamente la orden y el CUIT.",
@@ -55,16 +58,23 @@ public class ChatToolRegistry {
 
   private String runGetMyOrders(UUID userId) {
     try {
-      var orders = orderService.getActiveOrdersForChatbot(userId);
+      List<OrderSummaryDTO> orders = orderService.getActiveOrdersForChatbot(userId);
       if (orders.isEmpty()) return "El usuario no tiene órdenes activas.";
-      var sb = new StringBuilder();
+      StringBuilder sb = new StringBuilder();
       for (var o : orders) {
         String shortId = o.orderId().toString().substring(0, 8).toUpperCase();
-        sb.append("ID completo: ").append(o.orderId())
-            .append(" (mostrado al usuario como #").append(shortId).append(")")
-            .append(" | Estado: ").append(o.status())
-            .append(" | Total: $").append(o.total())
-            .append(" | Fecha: ").append(o.createdAt()).append("\n");
+        sb.append("ID completo: ")
+            .append(o.orderId())
+            .append(" (mostrado al usuario como #")
+            .append(shortId)
+            .append(")")
+            .append(" | Estado: ")
+            .append(o.status())
+            .append(" | Total: $")
+            .append(o.total())
+            .append(" | Fecha: ")
+            .append(o.createdAt())
+            .append("\n");
       }
       return sb.toString();
     } catch (Exception e) {

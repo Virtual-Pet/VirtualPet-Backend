@@ -11,11 +11,8 @@ import com.virtualpet.TestRedisConfiguration;
 import com.virtualpet.catalog.domain.CategoryEntity;
 import com.virtualpet.catalog.domain.ProductEntity;
 import com.virtualpet.catalog.domain.ProductVariantEntity;
-import com.virtualpet.catalog.repository.ProductRepository;
 import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.orders.repository.OrderRepository;
-import com.virtualpet.orders.repository.PaymentRepository;
-import com.virtualpet.shipments.repository.ShipmentRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
@@ -42,12 +39,8 @@ class CheckoutFlowTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
-  @Autowired private ProductRepository productRepository;
   @Autowired private ProductVariantRepository variantRepository;
-  @Autowired private PaymentRepository paymentRepository;
   @Autowired private OrderRepository orderRepository;
-  @Autowired private ShipmentRepository shipmentRepository;
-
   @PersistenceContext private EntityManager em;
 
   private String accessToken;
@@ -342,7 +335,7 @@ class CheckoutFlowTest {
                             .formatted(email, password)))
             .andReturn();
     JsonNode tokens = objectMapper.readTree(loginResult.getResponse().getContentAsString());
-    return tokens.get("accessToken").asText();
+    return tokens.get("accessToken").asString();
   }
 
   private String startSessionWithAddress() throws Exception {
@@ -376,6 +369,6 @@ class CheckoutFlowTest {
 
   private String jsonField(MvcResult result, String field) throws Exception {
     JsonNode tree = objectMapper.readTree(result.getResponse().getContentAsString());
-    return tree.get(field).asText();
+    return tree.get(field).asString();
   }
 }

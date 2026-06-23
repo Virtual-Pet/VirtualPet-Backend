@@ -53,9 +53,11 @@ public final class OrderDTO {
 
   public record InvoiceRequestDTO(
       @NotBlank
-      @Size(max = 20)
-      @Pattern(regexp = "\\d{2}-\\d{7,8}-\\d", message = "CUIT inválido (formato esperado: XX-XXXXXXXX-X)")
-      String cuit) {}
+          @Size(max = 20)
+          @Pattern(
+              regexp = "\\d{2}-\\d{7,8}-\\d",
+              message = "CUIT inválido (formato esperado: XX-XXXXXXXX-X)")
+          String cuit) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record RefundSummaryDTO(UUID paymentId, PaymentStatus status) {}

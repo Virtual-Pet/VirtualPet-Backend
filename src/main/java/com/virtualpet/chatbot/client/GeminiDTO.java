@@ -32,7 +32,8 @@ public final class GeminiDTO {
       return new Content("model", List.of(Part.text(text)));
     }
 
-    public static Content modelFunctionCall(String name, Map<String, Object> args, String thoughtSignature) {
+    public static Content modelFunctionCall(
+        String name, Map<String, Object> args, String thoughtSignature) {
       return new Content("model", List.of(Part.functionCall(name, args, thoughtSignature)));
     }
 
@@ -52,7 +53,8 @@ public final class GeminiDTO {
       return new Part(text, null, null, null);
     }
 
-    public static Part functionCall(String name, Map<String, Object> args, String thoughtSignature) {
+    public static Part functionCall(
+        String name, Map<String, Object> args, String thoughtSignature) {
       return new Part(null, new FunctionCall(name, args), null, thoughtSignature);
     }
 

@@ -6,7 +6,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum UserRole {
   ROLE_CUSTOMER,
   ROLE_EMPLOYEE,
-  ROLE_ADMIN;
+  ROLE_ADMIN,
+  ROLE_RIDER;
 
   /** Spec-facing wire name without the Spring Security ROLE_ prefix. */
   @JsonValue

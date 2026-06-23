@@ -110,6 +110,7 @@ public class GlobalExceptionHandler {
     pd.setType(URI.create(BASE_TYPE + slug(status)));
     pd.setInstance(URI.create(req.getRequestURI()));
     pd.setProperty("timestamp", Instant.now().toString());
+    pd.setProperty("message", detail);
     String requestId = MDC.get("requestId");
     if (requestId != null) {
       pd.setProperty("requestId", requestId);

@@ -36,7 +36,7 @@ public final class JsonAttributeConverters {
           // Fall back to parse as flat string
         }
       }
-      
+
       // Parse as flat string legacy data: e.g. "Av. Independencia 2345, Mar del Plata, BA, 7600"
       String[] parts = trimmed.split(",");
       String addressLine = parts.length > 0 ? parts[0].trim() : trimmed;

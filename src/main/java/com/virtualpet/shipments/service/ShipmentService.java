@@ -16,9 +16,11 @@ import com.virtualpet.shipments.domain.ShipmentStatusHistoryEntity;
 import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentResponseDTO;
 import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentStatusEventDTO;
 import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentSummaryDTO;
+import com.virtualpet.shipments.event.ShipmentStatusChangedEvent;
 import com.virtualpet.shipments.repository.ShipmentRepository;
 import com.virtualpet.shipments.repository.ShipmentStatusHistoryRepository;
 import com.virtualpet.shipments.spec.ShipmentSpecifications;
+import java.time.Instant;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -47,17 +50,19 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ShipmentService {
 
+  // Employee/Admin: only CONFIRMED → PREPARED; riders handle everything after
   private static final Map<ShipmentStatus, ShipmentStatus> NEXT_ALLOWED =
       new EnumMap<>(ShipmentStatus.class);
 
   static {
     NEXT_ALLOWED.put(ShipmentStatus.CONFIRMED, ShipmentStatus.PREPARED);
-    NEXT_ALLOWED.put(ShipmentStatus.PREPARED, ShipmentStatus.IN_TRANSIT);
-    NEXT_ALLOWED.put(ShipmentStatus.IN_TRANSIT, ShipmentStatus.DELIVERED);
   }
 
-  private static final EnumSet<ShipmentStatus> ADVANCE_TARGETS =
-      EnumSet.of(ShipmentStatus.PREPARED, ShipmentStatus.IN_TRANSIT, ShipmentStatus.DELIVERED);
+  private static final EnumSet<ShipmentStatus> EMPLOYEE_ADVANCE_TARGETS =
+      EnumSet.of(ShipmentStatus.PREPARED);
+
+  private static final EnumSet<ShipmentStatus> RIDER_FINALIZE_TARGETS =
+      EnumSet.of(ShipmentStatus.DELIVERED, ShipmentStatus.RETURNED);
 
   private final ShipmentRepository shipmentRepository;
   private final ShipmentStatusHistoryRepository historyRepository;
@@ -65,6 +70,7 @@ public class ShipmentService {
   private final CursorCodec cursorCodec;
   private final UserRepository userRepository;
   private final CustomerRepository customerRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   /* ---------- List ---------- */
 
@@ -73,6 +79,7 @@ public class ShipmentService {
       UUID callerId,
       boolean isCustomer,
       boolean userIsMe,
+      UUID operatorId,
       ShipmentStatus status,
       String cursor,
       int limit) {
@@ -86,6 +93,7 @@ public class ShipmentService {
             Stream.of(
                     ShipmentSpecifications.byStatus(status),
                     ShipmentSpecifications.ownedByUser(userScope),
+                    ShipmentSpecifications.byOperatorId(operatorId),
                     ShipmentSpecifications.afterCursor(decoded))
                 .filter(Objects::nonNull)
                 .toList());
@@ -157,7 +165,6 @@ public class ShipmentService {
                       order != null ? order.getShippingAddress() : null,
                       order != null && order.isRequiresInvoice(),
                       order != null ? order.getBillingCuit() : null);
-
                 })
             .toList();
 
@@ -190,23 +197,70 @@ public class ShipmentService {
         history);
   }
 
+  /* ---------- Assign (rider) ---------- */
+
+  @Transactional
+  public ShipmentSummaryDTO assign(UUID shipmentId, UUID riderId) {
+    ShipmentEntity shipment =
+        shipmentRepository
+            .findByIdForUpdate(shipmentId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shipment not found"));
+
+    if (shipment.getStatus() != ShipmentStatus.PREPARED) {
+      throw new ApiException(HttpStatus.CONFLICT, "El envío no está disponible para asignación");
+    }
+
+    ShipmentStatus previous = shipment.getStatus();
+    shipment.setStatus(ShipmentStatus.ASSIGNED);
+    shipment.setOperatorId(riderId);
+    shipmentRepository.save(shipment);
+
+    historyRepository.save(
+        ShipmentStatusHistoryEntity.builder()
+            .shipmentId(shipmentId)
+            .prevStatus(previous.name())
+            .newStatus(ShipmentStatus.ASSIGNED.name())
+            .modifiedBy(riderId)
+            .build());
+    eventPublisher.publishEvent(
+        new ShipmentStatusChangedEvent(
+            shipmentId, shipment.getOrderId(), ShipmentStatus.ASSIGNED, previous, Instant.now()));
+    log.info("Shipment {} assigned to rider {}", shipmentId, riderId);
+
+    return buildSummary(shipment);
+  }
+
   /* ---------- Advance ---------- */
 
   @Transactional
-  public ShipmentResponseDTO advance(UUID id, ShipmentStatus target, UUID operatorId) {
-    if (!ADVANCE_TARGETS.contains(target)) {
-      throw new ApiException(
-          HttpStatus.UNPROCESSABLE_CONTENT, "Allowed transitions: PREPARED, IN_TRANSIT, DELIVERED");
-    }
+  public ShipmentResponseDTO advance(
+      UUID id, ShipmentStatus target, UUID operatorId, boolean isRider) {
     ShipmentEntity shipment =
         shipmentRepository
             .findById(id)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shipment not found"));
 
-    ShipmentStatus expected = NEXT_ALLOWED.get(shipment.getStatus());
-    if (expected != target) {
-      throw new ApiException(
-          HttpStatus.CONFLICT, "Invalid transition: " + shipment.getStatus() + " → " + target);
+    if (isRider) {
+      if (!RIDER_FINALIZE_TARGETS.contains(target)) {
+        throw new ApiException(
+            HttpStatus.UNPROCESSABLE_CONTENT, "Estado inválido: solo DELIVERED o RETURNED");
+      }
+      if (shipment.getStatus() != ShipmentStatus.ASSIGNED) {
+        throw new ApiException(
+            HttpStatus.CONFLICT, "Solo podés finalizar envíos en estado ASSIGNED");
+      }
+      if (!operatorId.equals(shipment.getOperatorId())) {
+        throw new ApiException(HttpStatus.FORBIDDEN, "No tenés acceso a este envío");
+      }
+    } else {
+      if (!EMPLOYEE_ADVANCE_TARGETS.contains(target)) {
+        throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Allowed transition: PREPARED");
+      }
+      ShipmentStatus expected = NEXT_ALLOWED.get(shipment.getStatus());
+      if (expected != target) {
+        throw new ApiException(
+            HttpStatus.CONFLICT, "Invalid transition: " + shipment.getStatus() + " → " + target);
+      }
     }
 
     ShipmentStatus previous = shipment.getStatus();
@@ -219,6 +273,9 @@ public class ShipmentService {
             .newStatus(target.name())
             .modifiedBy(operatorId)
             .build());
+    eventPublisher.publishEvent(
+        new ShipmentStatusChangedEvent(
+            shipment.getId(), shipment.getOrderId(), target, previous, Instant.now()));
     log.info(
         "Shipment {} transitioned: {} → {} (operator={})",
         shipment.getId(),
@@ -229,6 +286,44 @@ public class ShipmentService {
   }
 
   /* ---------- Internals ---------- */
+
+  private ShipmentSummaryDTO buildSummary(ShipmentEntity s) {
+    OrderEntity order = orderRepository.findById(s.getOrderId()).orElse(null);
+    UserEntity user =
+        order != null ? userRepository.findById(order.getUserId()).orElse(null) : null;
+    CustomerEntity customer =
+        order != null ? customerRepository.findById(order.getUserId()).orElse(null) : null;
+
+    String cName = "Invitado";
+    if (order != null && order.getContactName() != null && !order.getContactName().isBlank()) {
+      cName =
+          order.getContactName()
+              + (order.getContactLastname() != null ? " " + order.getContactLastname() : "");
+    } else if (customer != null) {
+      cName = customer.getName() + " " + customer.getLastname();
+    } else if (user != null) {
+      cName = user.getEmail();
+    }
+
+    String cEmail = "guest@virtualpet.com";
+    if (order != null && order.getContactEmail() != null && !order.getContactEmail().isBlank()) {
+      cEmail = order.getContactEmail();
+    } else if (user != null) {
+      cEmail = user.getEmail();
+    }
+
+    return new ShipmentSummaryDTO(
+        s.getId(),
+        s.getOrderId(),
+        s.getStatus(),
+        s.getUpdatedAt() == null ? s.getCreatedAt() : s.getUpdatedAt(),
+        cName,
+        cEmail,
+        order != null ? order.getTotal() : java.math.BigDecimal.ZERO,
+        order != null ? order.getShippingAddress() : null,
+        order != null && order.isRequiresInvoice(),
+        order != null ? order.getBillingCuit() : null);
+  }
 
   private ShipmentResponseDTO getByIdInternal(ShipmentEntity shipment) {
     OrderEntity order = orderRepository.findById(shipment.getOrderId()).orElse(null);

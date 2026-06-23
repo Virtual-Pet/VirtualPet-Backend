@@ -56,18 +56,21 @@ public class ConfirmOrchestrator {
       CheckoutSession session, PaymentEntity payment) {
     OrderConfirmationResponseDTO result = createOrder(session);
     // Link the payment to the newly created order (idempotent: order may already exist).
-    orderRepository.findBySessionId(session.getId()).ifPresent(order -> {
-      if (payment.getOrderId() == null) {
-        payment.setOrderId(order.getId());
-        paymentRepository.save(payment);
-      }
-    });
+    orderRepository
+        .findBySessionId(session.getId())
+        .ifPresent(
+            order -> {
+              if (payment.getOrderId() == null) {
+                payment.setOrderId(order.getId());
+                paymentRepository.save(payment);
+              }
+            });
     return result;
   }
 
   /**
-   * Creates an order directly from a checkout session without requiring a payment entity.
-   * Used when the payment is handled externally (cash on delivery, bank transfer, etc.).
+   * Creates an order directly from a checkout session without requiring a payment entity. Used when
+   * the payment is handled externally (cash on delivery, bank transfer, etc.).
    */
   @Transactional
   public OrderConfirmationResponseDTO placeOrder(CheckoutSession session) {
@@ -75,12 +78,12 @@ public class ConfirmOrchestrator {
   }
 
   /**
-   * Places an order for a guest (no account required). Bypasses cart and Redis session.
-   * Generates a one-time tracking token returned to the client.
+   * Places an order for a guest (no account required). Bypasses cart and Redis session. Generates a
+   * one-time tracking token returned to the client.
    */
   @Transactional
   public OrderConfirmationResponseDTO placeGuestOrder(
-      CheckoutSession session, GuestInfoDTO guest) {
+      CheckoutSession session, GuestInfoDTO guest, String cartSessionId) {
     var existing = orderRepository.findBySessionId(session.getId());
     if (existing.isPresent()) {
       OrderEntity order = existing.get();
@@ -141,9 +144,12 @@ public class ConfirmOrchestrator {
     ShipmentEntity savedShipment = shipmentRepository.save(shipment);
     shipmentService.recordInitialStatus(savedShipment.getId(), ShipmentStatus.CONFIRMED, null);
 
+    if (cartSessionId != null && !cartSessionId.isBlank()) {
+      cartService.clearAnonCart(cartSessionId);
+    }
+
     log.info(
-        "Guest order placed: orderId={}, shipmentId={}",
-        savedOrder.getId(), savedShipment.getId());
+        "Guest order placed: orderId={}, shipmentId={}", savedOrder.getId(), savedShipment.getId());
     return new OrderConfirmationResponseDTO(
         savedOrder.getId(), savedShipment.getId(), savedOrder.getStatus().name(), trackingToken);
   }
@@ -155,12 +161,12 @@ public class ConfirmOrchestrator {
       OrderEntity order = existing.get();
       UUID shipmentId =
           shipmentRepository.findByOrderId(order.getId()).map(ShipmentEntity::getId).orElse(null);
-      return new OrderConfirmationResponseDTO(order.getId(), shipmentId, order.getStatus().name(), null);
+      return new OrderConfirmationResponseDTO(
+          order.getId(), shipmentId, order.getStatus().name(), null);
     }
 
     if (session.getShippingAddress() == null) {
-      throw new ApiException(
-          HttpStatus.CONFLICT, "Cannot place order without a shipping address");
+      throw new ApiException(HttpStatus.CONFLICT, "Cannot place order without a shipping address");
     }
 
     Map<UUID, ProductVariantEntity> variants = fetchVariants(session.getLineItems());

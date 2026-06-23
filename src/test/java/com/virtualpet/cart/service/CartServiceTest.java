@@ -3,8 +3,6 @@ package com.virtualpet.cart.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.virtualpet.cart.dto.CartDTO;
@@ -13,13 +11,13 @@ import com.virtualpet.catalog.repository.ProductVariantRepository;
 import com.virtualpet.common.config.VirtualPetProperties;
 import com.virtualpet.common.exception.ApiException;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -67,7 +65,7 @@ class CartServiceTest {
               return null;
             })
         .when(ops)
-        .set(any(String.class), any(String.class), anyLong(), eq(TimeUnit.HOURS));
+        .set(any(String.class), any(String.class), any(Duration.class));
 
     when(variantRepository.findByIdWithProduct(any(UUID.class)))
         .thenAnswer(inv -> Optional.ofNullable(variants.get(inv.<UUID>getArgument(0))));
