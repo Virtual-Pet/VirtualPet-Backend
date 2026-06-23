@@ -74,6 +74,9 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
+                    // Chat SSE: accesible sin auth; el JWT opcional habilita las tools
+                    .requestMatchers(HttpMethod.GET, "/api/v1/chat/stream")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

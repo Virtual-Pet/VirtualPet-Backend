@@ -4,6 +4,7 @@ import com.virtualpet.common.pagination.CursorPage;
 import com.virtualpet.common.security.UserPrincipal;
 import com.virtualpet.orders.domain.OrderStatus;
 import com.virtualpet.orders.dto.OrderDTO.CancelOrderRequestDTO;
+import com.virtualpet.orders.dto.OrderDTO.InvoiceRequestDTO;
 import com.virtualpet.orders.dto.OrderDTO.OrderCancellationDTO;
 import com.virtualpet.orders.dto.OrderDTO.OrderResponseDTO;
 import com.virtualpet.orders.dto.OrderDTO.OrderSummaryDTO;
@@ -11,6 +12,7 @@ import com.virtualpet.orders.service.OrderService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -60,6 +63,15 @@ public class OrderController {
       @Valid @RequestBody(required = false) CancelOrderRequestDTO request) {
     String reason = request == null ? null : request.reason();
     return orderService.cancel(id, currentUser.getId(), isCustomer(currentUser), reason);
+  }
+
+  @PostMapping("/{id}/invoice")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void requestInvoice(
+      @AuthenticationPrincipal UserPrincipal currentUser,
+      @PathVariable UUID id,
+      @Valid @RequestBody InvoiceRequestDTO request) {
+    orderService.requestInvoice(id, request.cuit(), currentUser.getId());
   }
 
   private static boolean isCustomer(UserPrincipal user) {

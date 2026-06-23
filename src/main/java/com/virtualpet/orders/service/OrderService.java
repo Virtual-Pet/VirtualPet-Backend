@@ -108,6 +108,44 @@ public class OrderService {
     return toResponse(order);
   }
 
+  /* ---------- Invoice ---------- */
+
+  @Transactional
+  public void requestInvoice(UUID orderId, String cuit, UUID callerId) {
+    OrderEntity order =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
+    if (!order.getUserId().equals(callerId)) {
+      throw new ApiException(HttpStatus.NOT_FOUND, "Order not found");
+    }
+    if (order.getStatus() == OrderStatus.CANCELLED) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY, "Cannot request invoice for a cancelled order");
+    }
+    order.setRequiresInvoice(true);
+    order.setBillingCuit(cuit);
+    orderRepository.save(order);
+  }
+
+  /* ---------- Chatbot helpers ---------- */
+
+  @Transactional(readOnly = true)
+  public List<OrderSummaryDTO> getActiveOrdersForChatbot(UUID userId) {
+    Specification<OrderEntity> spec =
+        Specification.allOf(
+            OrderSpecifications.byUser(userId),
+            (root, query, cb) ->
+                cb.notEqual(root.get("status"), OrderStatus.CANCELLED));
+    Sort sort = Sort.by(Sort.Order.desc("createdAt"));
+    return orderRepository
+        .findAll(spec, PageRequest.of(0, 10, sort))
+        .getContent()
+        .stream()
+        .map(this::toSummary)
+        .toList();
+  }
+
   /* ---------- Cancel ---------- */
 
   @Transactional
@@ -184,6 +222,8 @@ public class OrderService {
         CURRENCY,
         order.getShippingAddress(),
         shipmentRef,
-        order.getCreatedAt());
+        order.getCreatedAt(),
+        order.isRequiresInvoice(),
+        order.getBillingCuit());
   }
 }

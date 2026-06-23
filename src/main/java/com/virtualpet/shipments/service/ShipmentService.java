@@ -154,7 +154,9 @@ public class ShipmentService {
                       cName,
                       cEmail,
                       order != null ? order.getTotal() : java.math.BigDecimal.ZERO,
-                      order != null ? order.getShippingAddress() : null);
+                      order != null ? order.getShippingAddress() : null,
+                      order != null && order.isRequiresInvoice(),
+                      order != null ? order.getBillingCuit() : null);
 
                 })
             .toList();
