@@ -1,5 +1,6 @@
 package com.virtualpet.orders.service;
 
+import com.virtualpet.auth.repository.RiderRepository;
 import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.common.pagination.Cursor;
 import com.virtualpet.common.pagination.CursorCodec;
@@ -12,6 +13,7 @@ import com.virtualpet.orders.dto.OrderDTO.OrderResponseDTO;
 import com.virtualpet.orders.dto.OrderDTO.OrderShipmentRefDTO;
 import com.virtualpet.orders.dto.OrderDTO.OrderSummaryDTO;
 import com.virtualpet.orders.dto.OrderDTO.OrderTotalsDTO;
+import com.virtualpet.orders.dto.OrderDTO.RiderInfoDTO;
 import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.orders.spec.OrderSpecifications;
 import com.virtualpet.shipments.domain.ShipmentEntity;
@@ -37,6 +39,7 @@ public class OrderService {
 
   private final OrderRepository orderRepository;
   private final ShipmentRepository shipmentRepository;
+  private final RiderRepository riderRepository;
   private final CancelOrchestrator cancelOrchestrator;
   private final CursorCodec cursorCodec;
 
@@ -203,11 +206,21 @@ public class OrderService {
                         i.getSubtotal()))
             .toList();
 
+    ShipmentEntity shipment = shipmentRepository.findByOrderId(order.getId()).orElse(null);
     OrderShipmentRefDTO shipmentRef =
-        shipmentRepository
-            .findByOrderId(order.getId())
-            .map(s -> new OrderShipmentRefDTO(s.getId(), s.getStatus()))
-            .orElse(null);
+        shipment == null ? null : new OrderShipmentRefDTO(shipment.getId(), shipment.getStatus());
+
+    RiderInfoDTO rider = null;
+    if (shipment != null && shipment.getRiderId() != null) {
+      rider =
+          riderRepository
+              .findById(shipment.getRiderId())
+              .map(
+                  r ->
+                      new RiderInfoDTO(
+                          r.getName(), r.getLastname(), r.getPhone(), r.getVehicleType()))
+              .orElse(null);
+    }
 
     return new OrderResponseDTO(
         order.getId(),
@@ -218,6 +231,7 @@ public class OrderService {
         CURRENCY,
         order.getShippingAddress(),
         shipmentRef,
+        rider,
         order.getCreatedAt(),
         order.isRequiresInvoice(),
         order.getBillingCuit());

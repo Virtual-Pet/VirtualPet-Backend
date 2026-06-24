@@ -60,12 +60,15 @@ public class ChatService {
       }
       var candidate = response.candidates().getFirst();
       if (candidate == null || candidate.content() == null || candidate.content().parts() == null) {
-        log.warn("Gemini returned null content, finishReason={}", candidate != null ? candidate.finishReason() : "null candidate");
+        log.warn(
+            "Gemini returned null content, finishReason={}",
+            candidate != null ? candidate.finishReason() : "null candidate");
         break;
       }
       var parts = candidate.content().parts();
 
-      var functionCallPart = parts.stream().filter(p -> p != null && p.functionCall() != null).findFirst();
+      var functionCallPart =
+          parts.stream().filter(p -> p != null && p.functionCall() != null).findFirst();
 
       if (functionCallPart.isEmpty()) {
         String text =

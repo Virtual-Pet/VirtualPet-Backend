@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CancelOrchestrator {
 
   private static final EnumSet<ShipmentStatus> CANCELABLE_SHIPMENT_STATUSES =
-      EnumSet.of(ShipmentStatus.CONFIRMED, ShipmentStatus.PREPARED);
+      EnumSet.of(ShipmentStatus.CONFIRMED, ShipmentStatus.PREPARED, ShipmentStatus.RETURNED);
 
   private final OrderRepository orderRepository;
   private final ShipmentRepository shipmentRepository;

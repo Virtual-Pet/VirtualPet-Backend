@@ -32,13 +32,13 @@ public class ShipmentController {
   public CursorPage<ShipmentSummaryDTO> list(
       @AuthenticationPrincipal UserPrincipal currentUser,
       @RequestParam(required = false, name = "user") String userFilter,
-      @RequestParam(required = false, name = "operator_id") UUID operatorId,
+      @RequestParam(required = false, name = "rider_id") UUID riderId,
       @RequestParam(required = false) ShipmentStatus status,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int limit) {
     boolean userIsMe = "me".equalsIgnoreCase(userFilter);
     return shipmentService.list(
-        currentUser.getId(), isCustomer(currentUser), userIsMe, operatorId, status, cursor, limit);
+        currentUser.getId(), isCustomer(currentUser), userIsMe, riderId, status, cursor, limit);
   }
 
   @GetMapping("/{id}")
