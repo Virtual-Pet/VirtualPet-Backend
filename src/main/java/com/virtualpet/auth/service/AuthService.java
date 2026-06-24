@@ -2,6 +2,7 @@ package com.virtualpet.auth.service;
 
 import com.virtualpet.auth.domain.CustomerEntity;
 import com.virtualpet.auth.domain.EmployeeEntity;
+import com.virtualpet.auth.domain.RiderEntity;
 import com.virtualpet.auth.domain.UserEntity;
 import com.virtualpet.auth.domain.enums.UserRole;
 import com.virtualpet.auth.dto.AuthDTO.AuthTokensDTO;
@@ -38,6 +39,7 @@ public class AuthService {
   private final UserRepository userRepository;
   private final CustomerProfileService customerProfileService;
   private final EmployeeProfileService employeeProfileService;
+  private final RiderProfileService riderProfileService;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
@@ -114,9 +116,12 @@ public class AuthService {
     switch (user.getRole()) {
       case ROLE_CUSTOMER ->
           customerProfileService.updateName(userId, request.firstName(), request.lastName());
-      case ROLE_EMPLOYEE, ROLE_ADMIN, ROLE_RIDER ->
+      case ROLE_EMPLOYEE, ROLE_ADMIN ->
           employeeProfileService.updateName(userId, request.firstName(), request.lastName());
-    }
+      case ROLE_RIDER -> {
+          riderProfileService.updateName(userId, request.firstName(), request.lastName());
+      }
+        }
     return assembleUser(user);
   }
 
@@ -174,8 +179,13 @@ public class AuthService {
         firstName = profile.getName();
         lastName = profile.getLastname();
       }
-      case ROLE_EMPLOYEE, ROLE_ADMIN, ROLE_RIDER -> {
+      case ROLE_EMPLOYEE, ROLE_ADMIN -> {
         EmployeeEntity profile = employeeProfileService.getByUserId(user.getId());
+        firstName = profile.getName();
+        lastName = profile.getLastname();
+      }
+      case ROLE_RIDER -> {
+        RiderEntity profile = riderProfileService.getByUserId(user.getId());
         firstName = profile.getName();
         lastName = profile.getLastname();
       }
