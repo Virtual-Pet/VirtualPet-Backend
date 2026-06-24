@@ -1,7 +1,5 @@
 package com.virtualpet.shipments.sse;
 
-
-import tools.jackson.databind.ObjectMapper;
 import com.virtualpet.shipments.event.ShipmentStatusChangedEvent;
 import java.io.IOException;
 import java.util.UUID;
@@ -10,17 +8,24 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ShipmentEmitterRegistry {
 
+  /**
+   * Sentinel stored in place of a {@code null} order filter, since {@link ConcurrentHashMap}
+   * forbids null values. Represents "subscribe to all shipment updates".
+   */
+  private static final UUID ALL_ORDERS = new UUID(0L, 0L);
+
   private final ConcurrentHashMap<SseEmitter, UUID> emitters = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
 
   public void register(SseEmitter emitter, UUID orderIdFilter) {
-    emitters.put(emitter, orderIdFilter);
+    emitters.put(emitter, orderIdFilter == null ? ALL_ORDERS : orderIdFilter);
     Runnable cleanup = () -> emitters.remove(emitter);
     emitter.onCompletion(cleanup);
     emitter.onTimeout(cleanup);
@@ -49,7 +54,7 @@ public class ShipmentEmitterRegistry {
 
     emitters.forEach(
         (emitter, filter) -> {
-          if (filter != null && !filter.equals(event.orderId())) {
+          if (!filter.equals(ALL_ORDERS) && !filter.equals(event.orderId())) {
             return;
           }
           try {

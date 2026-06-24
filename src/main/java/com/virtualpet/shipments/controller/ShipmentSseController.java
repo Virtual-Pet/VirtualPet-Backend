@@ -2,10 +2,12 @@ package com.virtualpet.shipments.controller;
 
 import com.virtualpet.common.security.UserPrincipal;
 import com.virtualpet.shipments.sse.ShipmentEmitterRegistry;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,7 +34,13 @@ public class ShipmentSseController {
   @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter subscribe(
       @RequestParam(required = false) UUID orderId,
-      @AuthenticationPrincipal UserPrincipal currentUser) {
+      @AuthenticationPrincipal UserPrincipal currentUser,
+      HttpServletResponse response) {
+
+    // Defense-in-depth against response buffering by an upstream proxy/CDN. Caddy already
+    // streams text/event-stream live; these matter only if nginx or a caching layer is added.
+    response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
+    response.setHeader("X-Accel-Buffering", "no");
 
     SseEmitter emitter = new SseEmitter(300_000L);
 

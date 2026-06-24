@@ -9,9 +9,9 @@
 -- 1. Usuarios base (el id se autogenera con gen_random_uuid()).
 INSERT INTO auth.users (email, password_hash, role, active)
 VALUES
-    ('rider@virtualpet.com',  '$2a$10$9bIwZjXbo8qInw3b/DVYuOFCnbKTmKb0hVUp.FPWKEstT/.PEH4jm', 'ROLE_RIDER', TRUE),
-    ('rider2@virtualpet.com', '$2a$10$9bIwZjXbo8qInw3b/DVYuOFCnbKTmKb0hVUp.FPWKEstT/.PEH4jm', 'ROLE_RIDER', TRUE),
-    ('rider3@virtualpet.com', '$2a$10$9bIwZjXbo8qInw3b/DVYuOFCnbKTmKb0hVUp.FPWKEstT/.PEH4jm', 'ROLE_RIDER', TRUE)
+    ('rider@virtualpet.com',  '$2b$10$wPCOlTXJtYIVIVfYrHFLeOVwflcne6UjNn76TVmhGKk3lpI/u9dLm', 'ROLE_RIDER', TRUE),
+    ('rider2@virtualpet.com', '$2b$10$wPCOlTXJtYIVIVfYrHFLeOVwflcne6UjNn76TVmhGKk3lpI/u9dLm', 'ROLE_RIDER', TRUE),
+    ('rider3@virtualpet.com', '$2b$10$wPCOlTXJtYIVIVfYrHFLeOVwflcne6UjNn76TVmhGKk3lpI/u9dLm', 'ROLE_RIDER', TRUE)
 ON CONFLICT (email) DO NOTHING;
 
 -- 2. Extensión rider, enlazada por email para no depender del UUID generado arriba.

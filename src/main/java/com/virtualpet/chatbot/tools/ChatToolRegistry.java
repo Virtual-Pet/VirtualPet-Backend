@@ -86,16 +86,18 @@ public class ChatToolRegistry {
     try {
       String orderIdStr = (String) args.get("orderId");
       String cuit = (String) args.get("cuit");
-      
+
       UUID orderId;
       try {
         orderId = UUID.fromString(orderIdStr);
       } catch (IllegalArgumentException e) {
         // Fallback: tratar como short ID y buscar la orden activa que coincida
         var orders = orderService.getActiveOrdersForChatbot(userId);
-        var matched = orders.stream()
-            .filter(o -> o.orderId().toString().toUpperCase().startsWith(orderIdStr.toUpperCase()))
-            .findFirst();
+        var matched =
+            orders.stream()
+                .filter(
+                    o -> o.orderId().toString().toUpperCase().startsWith(orderIdStr.toUpperCase()))
+                .findFirst();
         if (matched.isPresent()) {
           orderId = matched.get().orderId();
         } else {

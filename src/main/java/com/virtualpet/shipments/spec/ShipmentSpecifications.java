@@ -35,11 +35,11 @@ public final class ShipmentSpecifications {
   }
 
   /** Filters to shipments assigned to the given rider. */
-  public static Specification<ShipmentEntity> byOperatorId(UUID operatorId) {
-    if (operatorId == null) {
+  public static Specification<ShipmentEntity> byRiderId(UUID riderId) {
+    if (riderId == null) {
       return null;
     }
-    return (root, query, cb) -> cb.equal(root.get("operatorId"), operatorId);
+    return (root, query, cb) -> cb.equal(root.get("riderId"), riderId);
   }
 
   /** Cursor keyset using the immutable createdAt + id tiebreaker. */

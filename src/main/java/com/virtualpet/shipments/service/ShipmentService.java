@@ -1,8 +1,10 @@
 package com.virtualpet.shipments.service;
 
 import com.virtualpet.auth.domain.CustomerEntity;
+import com.virtualpet.auth.domain.RiderEntity;
 import com.virtualpet.auth.domain.UserEntity;
 import com.virtualpet.auth.repository.CustomerRepository;
+import com.virtualpet.auth.repository.RiderRepository;
 import com.virtualpet.auth.repository.UserRepository;
 import com.virtualpet.common.exception.ApiException;
 import com.virtualpet.common.pagination.Cursor;
@@ -13,6 +15,7 @@ import com.virtualpet.orders.repository.OrderRepository;
 import com.virtualpet.shipments.domain.ShipmentEntity;
 import com.virtualpet.shipments.domain.ShipmentStatus;
 import com.virtualpet.shipments.domain.ShipmentStatusHistoryEntity;
+import com.virtualpet.shipments.dto.ShipmentDTO.RiderInfoDTO;
 import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentResponseDTO;
 import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentStatusEventDTO;
 import com.virtualpet.shipments.dto.ShipmentDTO.ShipmentSummaryDTO;
@@ -70,6 +73,7 @@ public class ShipmentService {
   private final CursorCodec cursorCodec;
   private final UserRepository userRepository;
   private final CustomerRepository customerRepository;
+  private final RiderRepository riderRepository;
   private final ApplicationEventPublisher eventPublisher;
 
   /* ---------- List ---------- */
@@ -79,7 +83,7 @@ public class ShipmentService {
       UUID callerId,
       boolean isCustomer,
       boolean userIsMe,
-      UUID operatorId,
+      UUID riderId,
       ShipmentStatus status,
       String cursor,
       int limit) {
@@ -93,7 +97,7 @@ public class ShipmentService {
             Stream.of(
                     ShipmentSpecifications.byStatus(status),
                     ShipmentSpecifications.ownedByUser(userScope),
-                    ShipmentSpecifications.byOperatorId(operatorId),
+                    ShipmentSpecifications.byRiderId(riderId),
                     ShipmentSpecifications.afterCursor(decoded))
                 .filter(Objects::nonNull)
                 .toList());
@@ -120,6 +124,12 @@ public class ShipmentService {
     List<CustomerEntity> customers = customerRepository.findAllById(userIds);
     Map<UUID, CustomerEntity> customerMap =
         customers.stream().collect(Collectors.toMap(CustomerEntity::getUserId, c -> c));
+
+    List<UUID> riderIds =
+        rows.stream().map(ShipmentEntity::getRiderId).filter(Objects::nonNull).distinct().toList();
+    List<RiderEntity> riders = riderRepository.findAllById(riderIds);
+    Map<UUID, RiderEntity> riderMap =
+        riders.stream().collect(Collectors.toMap(RiderEntity::getUserId, r -> r));
 
     List<ShipmentSummaryDTO> data =
         rows.stream()
@@ -154,6 +164,9 @@ public class ShipmentService {
                     cEmail = user.getEmail();
                   }
 
+                  RiderInfoDTO rider =
+                      s.getRiderId() == null ? null : toRiderInfo(riderMap.get(s.getRiderId()));
+
                   return new ShipmentSummaryDTO(
                       s.getId(),
                       s.getOrderId(),
@@ -164,7 +177,8 @@ public class ShipmentService {
                       order != null ? order.getTotal() : java.math.BigDecimal.ZERO,
                       order != null ? order.getShippingAddress() : null,
                       order != null && order.isRequiresInvoice(),
-                      order != null ? order.getBillingCuit() : null);
+                      order != null ? order.getBillingCuit() : null,
+                      rider);
                 })
             .toList();
 
@@ -206,13 +220,14 @@ public class ShipmentService {
             .findByIdForUpdate(shipmentId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Shipment not found"));
 
-    if (shipment.getStatus() != ShipmentStatus.PREPARED) {
+    if (shipment.getStatus() != ShipmentStatus.PREPARED
+        && shipment.getStatus() != ShipmentStatus.RETURNED) {
       throw new ApiException(HttpStatus.CONFLICT, "El envío no está disponible para asignación");
     }
 
     ShipmentStatus previous = shipment.getStatus();
     shipment.setStatus(ShipmentStatus.ASSIGNED);
-    shipment.setOperatorId(riderId);
+    shipment.setRiderId(riderId);
     shipmentRepository.save(shipment);
 
     historyRepository.save(
@@ -249,7 +264,7 @@ public class ShipmentService {
         throw new ApiException(
             HttpStatus.CONFLICT, "Solo podés finalizar envíos en estado ASSIGNED");
       }
-      if (!operatorId.equals(shipment.getOperatorId())) {
+      if (!operatorId.equals(shipment.getRiderId())) {
         throw new ApiException(HttpStatus.FORBIDDEN, "No tenés acceso a este envío");
       }
     } else {
@@ -312,6 +327,14 @@ public class ShipmentService {
       cEmail = user.getEmail();
     }
 
+    RiderInfoDTO rider =
+        s.getRiderId() == null
+            ? null
+            : riderRepository
+                .findById(s.getRiderId())
+                .map(ShipmentService::toRiderInfo)
+                .orElse(null);
+
     return new ShipmentSummaryDTO(
         s.getId(),
         s.getOrderId(),
@@ -322,7 +345,14 @@ public class ShipmentService {
         order != null ? order.getTotal() : java.math.BigDecimal.ZERO,
         order != null ? order.getShippingAddress() : null,
         order != null && order.isRequiresInvoice(),
-        order != null ? order.getBillingCuit() : null);
+        order != null ? order.getBillingCuit() : null,
+        rider);
+  }
+
+  private static RiderInfoDTO toRiderInfo(RiderEntity r) {
+    return r == null
+        ? null
+        : new RiderInfoDTO(r.getName(), r.getLastname(), r.getPhone(), r.getVehicleType());
   }
 
   private ShipmentResponseDTO getByIdInternal(ShipmentEntity shipment) {

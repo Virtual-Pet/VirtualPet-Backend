@@ -1,7 +1,7 @@
--- Add operator_id to shipments for rider assignment tracking
-ALTER TABLE shipments.shipments ADD COLUMN operator_id UUID;
+-- Add rider_id to shipments for rider assignment tracking
+ALTER TABLE shipments.shipments ADD COLUMN rider_id UUID;
 
-CREATE INDEX idx_shipments_operator_id ON shipments.shipments (operator_id);
+CREATE INDEX idx_shipments_rider_id ON shipments.shipments (rider_id);
 
 -- Drop the old constraint first
 ALTER TABLE shipments.shipments DROP CONSTRAINT chk_shipment_status;

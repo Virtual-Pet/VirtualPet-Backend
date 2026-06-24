@@ -45,4 +45,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
     filterChain.doFilter(request, response);
   }
+
+  /**
+   * SSE/async endpoints (e.g. {@code /api/v1/shipments/events}) trigger an ASYNC dispatch back
+   * through the Spring Security filter chain after the initial request thread completes. By default
+   * {@link OncePerRequestFilter} skips async dispatches, leaving the SecurityContext empty on that
+   * dispatch; with a STATELESS session the {@code AuthorizationFilter} then denies access. Running
+   * on async dispatches re-authenticates from the (still present) Authorization header.
+   */
+  @Override
+  protected boolean shouldNotFilterAsyncDispatch() {
+    return false;
+  }
 }

@@ -1,6 +1,7 @@
 package com.virtualpet.orders.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.virtualpet.auth.domain.enums.VehicleType;
 import com.virtualpet.orders.domain.Address;
 import com.virtualpet.orders.domain.OrderStatus;
 import com.virtualpet.orders.domain.PaymentStatus;
@@ -38,6 +39,9 @@ public final class OrderDTO {
 
   public record OrderShipmentRefDTO(UUID shipmentId, ShipmentStatus status) {}
 
+  /** Rider assigned to the order's shipment. Null until a rider claims it. */
+  public record RiderInfoDTO(String name, String lastname, String phone, VehicleType vehicleType) {}
+
   public record OrderResponseDTO(
       UUID orderId,
       UUID customerId,
@@ -47,6 +51,7 @@ public final class OrderDTO {
       String currency,
       Address shippingAddress,
       OrderShipmentRefDTO shipment,
+      @JsonInclude(JsonInclude.Include.NON_NULL) RiderInfoDTO rider,
       Instant createdAt,
       boolean requiresInvoice,
       @JsonInclude(JsonInclude.Include.NON_NULL) String billingCuit) {}
