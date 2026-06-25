@@ -305,9 +305,13 @@ public class ShipmentService {
   private ShipmentSummaryDTO buildSummary(ShipmentEntity s) {
     OrderEntity order = orderRepository.findById(s.getOrderId()).orElse(null);
     UserEntity user =
-        order != null ? userRepository.findById(order.getUserId()).orElse(null) : null;
+        (order != null && order.getUserId() != null)
+            ? userRepository.findById(order.getUserId()).orElse(null)
+            : null;
     CustomerEntity customer =
-        order != null ? customerRepository.findById(order.getUserId()).orElse(null) : null;
+        (order != null && order.getUserId() != null)
+            ? customerRepository.findById(order.getUserId()).orElse(null)
+            : null;
 
     String cName = "Invitado";
     if (order != null && order.getContactName() != null && !order.getContactName().isBlank()) {
