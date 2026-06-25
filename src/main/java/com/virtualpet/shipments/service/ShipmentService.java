@@ -267,6 +267,14 @@ public class ShipmentService {
       if (!operatorId.equals(shipment.getRiderId())) {
         throw new ApiException(HttpStatus.FORBIDDEN, "No tenés acceso a este envío");
       }
+      if (target == ShipmentStatus.RETURNED) {
+        short newAttempts = (short) (shipment.getAttempts() + 1);
+        shipment.setAttempts(newAttempts);
+        shipment.setLastAttemptAt(Instant.now());
+        if (newAttempts >= 3) {
+          target = ShipmentStatus.CANCELLED;
+        }
+      }
     } else {
       if (!EMPLOYEE_ADVANCE_TARGETS.contains(target)) {
         throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "Allowed transition: PREPARED");
