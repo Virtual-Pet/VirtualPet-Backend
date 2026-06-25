@@ -358,7 +358,8 @@ public class ShipmentService {
         order != null ? order.getShippingAddress() : null,
         order != null && order.isRequiresInvoice(),
         order != null ? order.getBillingCuit() : null,
-        rider);
+        rider,
+        s.getAttempts());
   }
 
   private static RiderInfoDTO toRiderInfo(RiderEntity r) {

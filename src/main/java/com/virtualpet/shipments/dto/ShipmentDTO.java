@@ -27,7 +27,8 @@ public final class ShipmentDTO {
       Address shippingAddress,
       boolean requiresInvoice,
       String billingCuit,
-      @JsonInclude(JsonInclude.Include.NON_NULL) RiderInfoDTO rider) {}
+      @JsonInclude(JsonInclude.Include.NON_NULL) RiderInfoDTO rider,
+      short attempts) {}
 
   public record ShipmentStatusEventDTO(ShipmentStatus status, Instant at) {}
 
